@@ -63,7 +63,7 @@ Module.preRun.push(function() {
     // message was on screen (usually the data-file counter) stays frozen.
     function bgmStatus() {
         if (typeof Module.setStatus === 'function') {
-            Module.setStatus('Loading music... (' + done + '/' + total + ')');
+            Module.setStatus('加载音乐 预计2分钟... (' + done + '/' + total + ')');
         }
     }
     function fin() {
