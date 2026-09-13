@@ -1,0 +1,244 @@
+<!doctypehtml><html lang=ja><head><meta charset=utf-8><meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"name=viewport><link href=data:, rel=icon><title>東方紅魔郷 〜 the Embodiment of Scarlet Devil</title><style>body,html{margin:0;width:100%;height:100%;overflow:hidden;background:#000;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}html{--touhou-canvas-width:640px;--touhou-canvas-height:480px}body{display:grid;place-items:center;touch-action:none}canvas{display:block;width:var(--touhou-canvas-width)!important;height:var(--touhou-canvas-height)!important;max-width:none;max-height:none;aspect-ratio:4/3;outline:0;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}#status{position:fixed;inset:auto 0 1rem;text-align:center;color:#ddd;font:14px sans-serif;pointer-events:none}</style></head><body><canvas id=canvas oncontextmenu=event.preventDefault() tabindex=0></canvas><div id=status>Loading…</div><script>(()=>{"use strict";const e="eagler-touhou/1",t="th06",r=new URLSearchParams(location.search),n="multiplayer"===r.get("runtimeVariant")?"/savesth06-multiplayer":"/savesth06",o="1"===r.get("hosted")&&window.parent!==window;window.__eaglerManagedDataState={enabled:"1"===r.get("managedData")&&o,game:t,generation:r.get("gameGeneration")||""};const a=r.get("v")||"",i=r.get("asset")||"",s=r.get("oggAsset")||"",l=globalThis.fetch.bind(globalThis),c=i?new URL(`/.eagler-local/game-data/${t}/${encodeURIComponent(i)}/${t}.data`,location.origin).href:"";globalThis.fetch=async(e,r)=>{try{const n=new URL(e instanceof Request?e.url:String(e),location.href),o=String(e instanceof Request?e.method:r?.method||"GET").toUpperCase();if(c&&"GET"===o&&n.origin===location.origin&&n.pathname.endsWith(`/${t}.data`)&&globalThis.caches?.match){const e=await caches.match(c);if(e)return e.clone()}if(s&&"GET"===o&&n.origin===location.origin&&/\/[^/]+\.ogg$/i.test(n.pathname)&&globalThis.caches?.match){const e=decodeURIComponent(n.pathname.slice(n.pathname.lastIndexOf("/")+1));if(/^[A-Za-z0-9_.-]+\.ogg$/.test(e)){const r=new URL(`/.eagler-local/ogg/${t}/${encodeURIComponent(s)}/${encodeURIComponent(e)}`,location.origin).href,n=await caches.match(r);if(n)return n.clone()}}}catch{}return l(e,r)};!0===navigator.userAgentData?.mobile||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||navigator.maxTouchPoints>1&&/Macintosh/i.test(navigator.userAgent);const u=document.getElementById("status"),d=()=>{const e=document.documentElement;if(!e)return;const t=((e,t)=>{const r=Math.max(1,Math.floor(Number(e)||0)),n=Math.max(1,Math.floor(Number(t)||0));let o=r,a=Math.floor(3*o/4);return a>n&&(a=n,o=Math.floor(4*a/3)),{width:o,height:a}})(e.clientWidth,e.clientHeight);e.style.setProperty("--touhou-canvas-width",`${t.width}px`),e.style.setProperty("--touhou-canvas-height",`${t.height}px`)};d(),window.addEventListener("resize",d,{passive:!0}),window.visualViewport?.addEventListener("resize",d,{passive:!0});let p=!1,h=[],y=[],g=[];const f=new Map;let m=null,w=null;const b=(r,n,a={})=>{o&&window.parent.postMessage({protocol:e,game:t,request:r,ok:n,...a},location.origin)},v=(r,n={})=>{o&&window.parent.postMessage({protocol:e,game:t,event:r,...n},location.origin)};globalThis.EaglerTouhouGameExited=e=>{const t=()=>v("exit",{status:1===e?"success":"failure"});return M().then(t,(e=>{console.error("final save sync failed",e),t()}))};let E=!1;globalThis.EaglerTouhouFirstFrame=()=>{v("first-frame"),(()=>{if(E||!o)return;E=!0;let e="WebGL";try{const t=Module&&Module.SDL3,r=globalThis.GLctx||Module.ctx||t&&t.ctx||Module.canvas&&(Module.canvas.getContext("webgl2")||Module.canvas.getContext("webgl"));if(r&&"function"==typeof r.getParameter){const t=r.getExtension("WEBGL_debug_renderer_info");e=String(r.getParameter(t?t.UNMASKED_RENDERER_WEBGL:r.RENDERER)||e)}}catch{}v("runtime-info",{renderer:e})})()},globalThis.EaglerTouhouFrameHealth=(e,t)=>v("frame-health",{fps:e,maxGapMs:t}),globalThis.EaglerTouhouAudioHealth=(e,t,r)=>{v("audio-health",{queuedMs:e,minQueuedMs:t,robust:!!r,backend:"script",underruns:0})};const M=()=>new Promise(((e,t)=>{FS.syncfs(!1,(r=>r?t(r):e()))})),S=e=>{const t=String(e?.message||e||"Runtime startup failed");console.error(e),u.textContent=t,v("error",{error:t})},C=e=>{if("string"!=typeof e||!e||e.includes("\\"))throw new Error("invalid path");const t=e.split("/");if(t.some((e=>!e||"."===e||".."===e)))throw new Error("invalid path");return`${n}/${t.join("/")}`},T=e=>{const t=e.lastIndexOf("/");t>0&&FS.mkdirTree(e.slice(0,t))},k=()=>{for(const e of h)try{FS.unlink(e)}catch{}h=[]},A=()=>{for(const e of y)try{FS.unlink(e)}catch{}y=[]},I=async e=>{if(p)throw new Error("runtime resources cannot be changed after launch");if("string"!=typeof e?.url||"string"!=typeof e.language||!Number.isInteger(e.bytes)||e.bytes<=0||!e.manifest||!Array.isArray(e.files))throw new Error("invalid TH06 language pack");if(new URL(e.url,location.href).origin!==location.origin)throw new Error("cross-origin TH06 language pack");((e,t)=>{if("eagler-touhou/thcrap-static-pack/1"!==e?.schema||"th06"!==e.game||e.language!==t.language||"string"!=typeof e.runtimeVersion||!Array.isArray(e.files)||e.files.length>256)throw new Error("invalid TH06 language pack manifest");for(const t of e.files)if("string"!=typeof t?.path||!t.path.startsWith("/thcrap/th06/")||t.path.includes("\\")||t.path.includes("..")||!Number.isInteger(t.bytes)||t.bytes<0)throw new Error("invalid TH06 language pack file")})(e.manifest,e);const t=new Map(e.manifest.files.map((e=>[e.path,e])));if(e.files.length!==t.size)throw new Error("TH06 language pack file count mismatch");const r=[];for(const n of e.files){if("string"!=typeof n?.path||!n.path.startsWith("/thcrap/th06/")||n.path.includes("\\")||n.path.includes("..")||!(n.bytes instanceof Uint8Array))throw new Error("invalid TH06 language pack path");const e=t.get(n.path);if(!e||n.bytes.length!==e.bytes)throw new Error(`${n.path}: size mismatch`);r.push({path:n.path,bytes:n.bytes})}A();for(const e of r)T(e.path),FS.writeFile(e.path,e.bytes,{canOwn:!0}),y.push(e.path)},R=async(e,t={},r={})=>{const n=new AbortController;let o=null,a=!1;const i=()=>{clearTimeout(o),o=setTimeout((()=>{a=!0,n.abort()}),15e3)};i();try{const o=await fetch(e,{...t,signal:n.signal});if(!o.ok)throw new Error(`${e.pathname}: HTTP ${o.status}`);r.onResponse?.(o),i();const a=[];let s=0;if(o.body?.getReader){const e=o.body.getReader();for(;;){const{done:t,value:n}=await e.read();if(t)break;i(),a.push(n),s+=n.length,r.onChunk?.(n,s)}}else{const e=new Uint8Array(await o.arrayBuffer());i(),a.push(e),s=e.length,r.onChunk?.(e,s)}const l=new Uint8Array(s);let c=0;for(const e of a)l.set(e,c),c+=e.length;return{response:o,bytes:l}}catch(t){if(a||"AbortError"===t?.name)throw new Error(`${e.pathname}: 15 秒内没有继续收到数据（网络 / CDN 超时）`);throw t}finally{clearTimeout(o)}},x=e=>{if(!m)return;const t=performance.now();if(!e&&t-m.lastEmit<200)return;m.lastEmit=t;const r=Math.max((t-m.startedAt)/1e3,.1);v("transfer",{kind:"music",mode:m.mode,loaded:m.loaded,total:m.total,speed:m.loaded/r,completed:m.completed,files:m.files})},F=async e=>{if("string"!=typeof e?.url||"string"!=typeof e?.path||!/^\/bgm\/[A-Za-z0-9_.-]+$/.test(e.path))throw new Error("invalid music resource");const t=new URL(e.url,location.href);if(t.origin!==location.origin)throw new Error("cross-origin music resource");const r=m.byPath.get(e.path)||0;m.loaded=Math.max(0,m.loaded-r),m.byPath.set(e.path,0);let n=0;const{bytes:o}=await R(t,{cache:"force-cache"},{onResponse(t){const r=Number(e.size)||Number(t.headers.get("content-length"))||0;!Number(e.size)&&r&&(m.total+=r)},onChunk(t,r){n=r,m.loaded+=t.length,m.byPath.set(e.path,n),x(!1)}});T(e.path),FS.writeFile(e.path,o,{canOwn:!0}),h.push(e.path),f.delete(e.path),m.completed++,x(!0)},P=(e,t)=>{f.set(e.path,e),v("music-error",{path:e.path,error:String(t?.message||t),failed:f.size})},L=async e=>{let t=0;await Promise.all(Array.from({length:Math.min(4,e.length)},(async()=>{for(;t<e.length;){const r=e[t++];try{await F(r)}catch(e){P(r,e)}}})))},N=(e,t=[])=>{for(const r of FS.readdir(e)){if("."===r||".."===r)continue;const o=`${e}/${r}`,a=FS.stat(o);FS.isDir(a.mode)?N(o,t):t.push({path:o.slice(n.length+1),size:a.size})}return t},D=async()=>{if(p)return;var e;e=Module.eaglerOptions.thpracSession||null,p||(Module.eaglerOptions.thpracSession=e,e&&v("thprac-session",{session:e}),p=!0,u.textContent="",document.getElementById("canvas").focus({preventScroll:!0}),Module.callMain([]),document.getElementById("canvas").focus({preventScroll:!0}))},U=new Map,$=new Map,B=(e,t)=>{const r=(e=>{switch(e.code||""){case"KeyZ":return 1;case"KeyX":return 2;case"ShiftLeft":case"ShiftRight":return 4;case"Escape":return 8;case"ArrowUp":case"Numpad8":return 16;case"ArrowDown":case"Numpad2":return 32;case"ArrowLeft":case"Numpad4":return 64;case"ArrowRight":case"Numpad6":return 128;case"Numpad7":return 80;case"Numpad9":return 144;case"Numpad1":return 96;case"Numpad3":return 160;case"ControlLeft":case"ControlRight":return 256;case"KeyQ":return 512;case"KeyS":return 1024;case"Home":return 2048;case"Enter":case"NumpadEnter":return 4096;case"KeyR":return 8192}const t=String(e.key||"").toLowerCase();if("z"===t)return 1;if("x"===t)return 2;if("shift"===t)return 4;if("escape"===t||"esc"===t)return 8;if("arrowup"===t)return 16;if("arrowdown"===t)return 32;if("arrowleft"===t)return 64;if("arrowright"===t)return 128;if("control"===t)return 256;if("q"===t)return 512;if("s"===t)return 1024;if("home"===t)return 2048;if("enter"===t)return 4096;if("r"===t)return 8192;switch(Number(e.keyCode)||0){case 90:return 1;case 88:return 2;case 16:return 4;case 27:return 8;case 38:return 16;case 40:return 32;case 37:return 64;case 39:return 128;case 17:return 256;case 81:return 512;case 83:return 1024;case 36:return 2048;case 13:return 4096;case 82:return 8192}return 0})(e),n=(e=>{switch(e.code||""){case"Backspace":return 1;case"F1":return 2;case"F2":return 4;case"F3":return 8;case"F4":return 16;case"F5":return 32;case"F6":return 64;case"F7":return 128;case"Tab":return 256}const t=String(e.key||"").toLowerCase();if("backspace"===t)return 1;if("tab"===t)return 256;if(/^f[1-7]$/.test(t))return 1<<Number(t.slice(1));const r=Number(e.keyCode)||0;return 8===r?1:9===r?256:r>=112&&r<=118?1<<r-111:0})(e);if(!r&&!n)return!1;if(r){const n=`${r}:${e.location||0}`;if(t)U.set(n,r);else{!U.delete(n)&&Module.eaglerControls&&(Module.eaglerControls.keyboardPulseBits=Module.eaglerControls.keyboardPulseBits|r)}}const o=`${n}:${e.location||0}`;return n&&(t?$.set(o,n):$.delete(o)),(()=>{let e=0;for(const t of U.values())e|=t;let t=0;for(const e of $.values())t|=e;Module.eaglerControls&&(Module.eaglerControls.keyboardBits=e,Module.eaglerControls.thpracKeyboardBits=t)})(),!0},_=()=>{U.clear(),$.clear(),Module.eaglerControls&&(Module.eaglerControls.keyboardBits=0,Module.eaglerControls.keyboardPulseBits=0,Module.eaglerControls.thpracKeyboardBits=0)};window.addEventListener("keydown",(e=>{p&&(e.metaKey||e.altKey||B(e,!0)&&e.preventDefault())}),!0),window.addEventListener("keyup",(e=>{p&&(e.metaKey||e.altKey||B(e,!1)&&e.preventDefault())}),!0),window.addEventListener("message",(async r=>{if(!o||r.source!==window.parent||r.origin!==location.origin)return;const a=r.data||{};if(a.protocol===e&&a.game===t)try{switch(a.command){case"configure":await(async e=>{if(!Array.isArray(e.sharedResources)||e.sharedResources.length>4)throw new Error("invalid shared resources");await Promise.all(e.sharedResources.map((async e=>{if("string"!=typeof e?.url||!["/msgothic.ttc","/unifont.otf"].includes(e.path))throw new Error("invalid shared resource");const t=new URL(e.url,location.href);if(t.origin!==location.origin)throw new Error("cross-origin shared resource");const{bytes:r}=await R(t,{cache:"force-cache"});FS.writeFile(e.path,r,{canOwn:!0})})))})(a),await(async e=>{if(p)throw new Error("runtime resources cannot be changed after launch");if(e.runtimePack)return void await I(e.runtimePack);const t=e.runtimeResources??[];if(!Array.isArray(t)||t.length>256)throw new Error("invalid runtime resources");A();for(const e of t){if("string"!=typeof e?.url||"string"!=typeof e.path||!e.path.startsWith("/thcrap/th06/")||e.path.includes("\\")||e.path.includes(".."))throw new Error("invalid runtime resource");const t=new URL(e.url,location.href);if(t.origin!==location.origin)throw new Error("cross-origin runtime resource");const{bytes:r}=await R(t,{cache:"force-cache"});if(Number.isFinite(Number(e.size))&&r.length!==Number(e.size))throw new Error(`${e.path}: size mismatch`);T(e.path),FS.writeFile(e.path,r,{canOwn:!0}),y.push(e.path)}})(a),await(async e=>{if(p)throw new Error("music cannot be changed after launch");const t=e.options||{};if(!Array.isArray(e.thpracCatalog??[])||(e.thpracCatalog?.length||0)>256)throw new Error("invalid thprac catalog");g=e.thpracCatalog??[],Module.eaglerThpracCatalog=g;for(const e of["thpracEnabled","limitPresentationTo60","touchEnabled","unlimitedTouch","touchBombZoneEnabled","doubleTapBombEnabled","alwaysHitbox","enhanceLocalPlayerVisibility","th06FocusHitbox","replayViewer","netplayRollbackAudit","netplayScriptedInput","netplayScriptedStressInput","netplayEliminationCycle","netplayCoopTransferCycle","netplayReplayPlaybackCycle","netplayPauseCycle","netplayRestartCycle","netplayRetryContinueCycle","netplayRepeatedRetryCycle","netplayDenseRollbackProfile","netplayQuitCycle","netplayEndingCycle","netplayStageTransition","netplayPhysicalInput","netplaySpectator"])if(null!=t[e]&&"boolean"!=typeof t[e])throw new Error("invalid eagler-touhou option");if(null!=t.touchSensitivity&&(!Number.isFinite(t.touchSensitivity)||t.touchSensitivity<50||t.touchSensitivity>300))throw new Error("invalid touch sensitivity");if(null!=t.touchMovementMode&&!["joystick","joystick-free","touch","touch-unlimited"].includes(t.touchMovementMode))throw new Error("invalid touch movement mode");if(null!=t.touchFocusMode&&!["two-finger","hold-button","toggle-button"].includes(t.touchFocusMode))throw new Error("invalid touch focus mode");if(null!=t.thpracLocale&&!["zh-CN","ja-JP","en-US"].includes(t.thpracLocale))throw new Error("invalid thprac locale");if(null!=t.oggDecodeMode&&!["stream","full"].includes(t.oggDecodeMode))throw new Error("invalid OGG decode mode");if(null!=t.netplayUrl&&("string"!=typeof t.netplayUrl||t.netplayUrl.length>511||!/^wss?:\/\//.test(t.netplayUrl)))throw new Error("invalid netplay URL");if(null!=t.netplayPlayer&&(!Number.isInteger(t.netplayPlayer)||t.netplayPlayer<0||t.netplayPlayer>2))throw new Error("invalid netplay player");if(null!=t.netplayPlayerCount&&(!Number.isInteger(t.netplayPlayerCount)||t.netplayPlayerCount<2||t.netplayPlayerCount>3))throw new Error("invalid netplay player count");if(null!=t.netplaySpectatorId&&("string"!=typeof t.netplaySpectatorId||!/^[A-Za-z0-9_-]{0,64}$/.test(t.netplaySpectatorId)))throw new Error("invalid spectator id");if(null!=t.netplaySpectatorCount&&(!Number.isInteger(t.netplaySpectatorCount)||t.netplaySpectatorCount<0||t.netplaySpectatorCount>64))throw new Error("invalid spectator count");if(null!=t.netplayMode&&"lan"!==t.netplayMode)throw new Error("invalid netplay mode");if(null!=t.netplaySeed&&(!Number.isInteger(t.netplaySeed)||t.netplaySeed<0||t.netplaySeed>65535))throw new Error("invalid netplay seed");if(null!=t.netplayDifficulty&&(!Number.isInteger(t.netplayDifficulty)||t.netplayDifficulty<0||t.netplayDifficulty>4))throw new Error("invalid netplay difficulty");if(null!=t.netplayIceServers){if(!Array.isArray(t.netplayIceServers)||t.netplayIceServers.length>8)throw new Error("invalid netplay ICE servers");for(const e of t.netplayIceServers){if(!e||"object"!=typeof e||Array.isArray(e))throw new Error("invalid netplay ICE server");const t=Array.isArray(e.urls)?e.urls:[e.urls];if(!t.length||t.length>8||t.some((e=>"string"!=typeof e||e.length>511||!/^(?:stun|stuns|turn|turns):/i.test(e))))throw new Error("invalid netplay ICE server URL");if(null!=e.username&&("string"!=typeof e.username||e.username.length>255))throw new Error("invalid netplay ICE username");if(null!=e.credential&&("string"!=typeof e.credential||e.credential.length>255))throw new Error("invalid netplay ICE credential")}}if(null!=t.netplayLoadouts&&(!Array.isArray(t.netplayLoadouts)||t.netplayLoadouts.length<2||t.netplayLoadouts.length>3||t.netplayLoadouts.some((e=>!e||"object"!=typeof e||Array.isArray(e)||!Number.isInteger(e.character)||e.character<0||e.character>1||!Number.isInteger(e.shot)||e.shot<0||e.shot>1))))throw new Error("invalid netplay loadouts");if(!("lan"!==t.netplayMode||t.netplayUrl&&Number.isInteger(t.netplayPlayer)&&Number.isInteger(t.netplayPlayerCount)&&!(t.netplayPlayer>=t.netplayPlayerCount)&&Number.isInteger(t.netplaySeed)&&Number.isInteger(t.netplayDifficulty)&&Array.isArray(t.netplayLoadouts)&&t.netplayLoadouts.length===t.netplayPlayerCount))throw new Error("incomplete LAN netplay session");const r=t.netplayStageTransition?24e3:12e3;if(null!=t.netplayTestFrames&&(!Number.isInteger(t.netplayTestFrames)||t.netplayTestFrames<60||t.netplayTestFrames>r))throw new Error("invalid netplay test frame count");const n=t.thpracSession;if(null!=t.debugHarness&&!["thprac-menu","music-room","font-metrics","stage1","netplay-lan-stage1","replay-extension","ending-reimu-a","ending-reimu-b","ending-marisa-a","ending-marisa-b","ending-reimu-bad","ending-marisa-bad"].includes(t.debugHarness))throw new Error("invalid debug harness");if(null!=n&&("eagler-touhou/thprac-session/1"!==n.schema||"th06"!==n.game||"object"!=typeof n.params||!n.params))throw new Error("invalid thprac session");if(Module.eaglerOptions={thpracEnabled:!!t.thpracEnabled,limitPresentationTo60:!!t.limitPresentationTo60,touchEnabled:!!t.touchEnabled,touchMovementMode:t.touchMovementMode||"touch",touchSensitivity:t.touchSensitivity??100,touchFocusMode:t.touchFocusMode||"two-finger",unlimitedTouch:!(!t.touchEnabled||"touch-unlimited"!==t.touchMovementMode&&!t.unlimitedTouch),touchBombZoneEnabled:!1!==t.touchBombZoneEnabled,doubleTapBombEnabled:!!t.touchEnabled&&!!t.doubleTapBombEnabled,alwaysHitbox:!!t.alwaysHitbox,enhanceLocalPlayerVisibility:!!t.enhanceLocalPlayerVisibility,th06FocusHitbox:!!t.th06FocusHitbox,replayViewer:!!t.replayViewer,thpracLocale:t.thpracLocale||"en-US",oggDecodeMode:t.oggDecodeMode||"stream",debugHarness:t.debugHarness||null,netplayMode:t.netplayMode||null,netplayUrl:t.netplayUrl||"",netplayPlayer:t.netplayPlayer??-1,netplayPlayerCount:t.netplayPlayerCount??2,netplaySpectator:!!t.netplaySpectator,netplaySpectatorId:t.netplaySpectatorId||"",netplaySpectatorCount:t.netplaySpectatorCount??0,netplaySeed:t.netplaySeed??19005,netplayDifficulty:t.netplayDifficulty??1,netplayIceServers:Array.isArray(t.netplayIceServers)?t.netplayIceServers.map((e=>({urls:Array.isArray(e.urls)?[...e.urls]:e.urls,...null!=e.username?{username:e.username}:{},...null!=e.credential?{credential:e.credential}:{}}))):[],netplayLoadouts:Array.isArray(t.netplayLoadouts)?t.netplayLoadouts.map((e=>({character:e.character,shot:e.shot}))):null,netplayPhysicalInput:!!t.netplayPhysicalInput,netplayScriptedInput:!!t.netplayScriptedInput,netplayScriptedStressInput:!!t.netplayScriptedStressInput,netplayEliminationCycle:!!t.netplayEliminationCycle,netplayCoopTransferCycle:!!t.netplayCoopTransferCycle,netplayReplayPlaybackCycle:!!t.netplayReplayPlaybackCycle,netplayRollbackAudit:!!t.netplayRollbackAudit,netplayPauseCycle:!!t.netplayPauseCycle,netplayRestartCycle:!!t.netplayRestartCycle,netplayRetryContinueCycle:!!t.netplayRetryContinueCycle,netplayRepeatedRetryCycle:!!t.netplayRepeatedRetryCycle,netplayDenseRollbackProfile:!!t.netplayDenseRollbackProfile,netplayQuitCycle:!!t.netplayQuitCycle,netplayEndingCycle:!!t.netplayEndingCycle,netplayStageTransition:!!t.netplayStageTransition,netplayTestFrames:t.netplayTestFrames??300,thpracSession:n||null},!["midi","wav","ogg","none"].includes(e.music))throw new Error("invalid music mode");if(!Array.isArray(e.resources)||e.resources.length>64)throw new Error("invalid music resources");if(k(),f.clear(),Module.touhouMusicMode=e.music,"midi"!==e.music&&"none"!==e.music){if(m={mode:e.music,loaded:0,total:e.resources.reduce(((e,t)=>e+(Number(t.size)||0)),0),completed:0,files:e.resources.length,startedAt:performance.now(),lastEmit:0,byPath:new Map},x(!0),"ogg"===e.music)await L(e.resources.slice(0,2)),L(e.resources.slice(2)).then((()=>{v(f.size?"music-incomplete":"music-complete",{loaded:m.loaded,total:m.total,failed:f.size})}));else{if(await L(e.resources),f.size)throw k(),Module.touhouMusicMode="",new Error(`${f.size} music resources failed`);v("music-complete",{loaded:m.loaded,total:m.total})}u.textContent="Ready"}})(a),b(a.request,!0);break;case"resources":await(async e=>{if(p)throw new Error("resources cannot be changed after launch");if(!Array.isArray(e)||e.length>512)throw new Error("invalid package resources");for(const t of e){if("string"!=typeof t?.url||"string"!=typeof t?.path||!t.path.startsWith("/")||t.path.includes("\\")||t.path.includes("/")||t.path.split("/").some(((e,t)=>t>0&&(!e||"."===e||".."===e))))throw new Error("invalid package resource");const e=new URL(t.url,location.href);if(e.origin!==location.origin)throw new Error("cross-origin package resource");const{bytes:r}=await R(e,{cache:"no-store"});T(t.path),FS.writeFile(t.path,r,{canOwn:!0})}})(a.resources??[]),b(a.request,!0);break;case"keyboard":if("boolean"!=typeof a.down||"string"!=typeof a.code||"string"!=typeof a.key||!Number.isInteger(a.keyCode)||!Number.isInteger(a.location))throw new Error("invalid keyboard bridge event");B(a,a.down);break;case"keyboard-clear":_();break;case"touch-cancel":G(),b(a.request,!0);break;case"direct-touch":{if(!(["down","move","up"].includes(a.type)&&Number.isInteger(a.id)&&Number.isFinite(a.x)&&Number.isFinite(a.y)))throw new Error("invalid direct touch bridge event");const e=Module.canvas.getBoundingClientRect();if(!(e.width>0&&e.height>0))break;const t=a.x*window.innerWidth,r=a.y*window.innerHeight,n=(t-e.left)/e.width,o=(r-e.top)/e.height;"down"===a.type&&Module.canvas.focus({preventScroll:!0}),"down"===a.type&&"function"==typeof Module._TouhouAuxTouchDown?Module._TouhouAuxTouchDown(a.id,n,o):"move"===a.type&&"function"==typeof Module._TouhouAuxTouchMotion?Module._TouhouAuxTouchMotion(a.id,n,o):"up"===a.type&&"function"==typeof Module._TouhouAuxTouchUp&&Module._TouhouAuxTouchUp(a.id,n,o);break}case"thprac-mouse":if(!["move","down","up"].includes(a.type)||!Number.isFinite(a.x)||!Number.isFinite(a.y))throw new Error("invalid thprac mouse bridge event");const e=Module.canvas.getBoundingClientRect();if(!(e.width>0&&e.height>0))break;const t=640*(a.x-e.left)/e.width,r=480*(a.y-e.top)/e.height;Module.canvas.focus({preventScroll:!0}),"function"==typeof Module._TouhouThpracMouseEvent&&Module._TouhouThpracMouseEvent("move"===a.type?0:"down"===a.type?1:2,t,r);break;case"launch":await D(),b(a.request,!0);break;case"touch-controls":if("boolean"!=typeof a.fireEnabled||"boolean"!=typeof a.focusEnabled||!Number.isInteger(a.bombSerial)||!Number.isInteger(a.escapeSerial)||!Number.isInteger(a.joystickX)||!Number.isInteger(a.joystickY)||a.joystickX<-32768||a.joystickX>32767||a.joystickY<-32768||a.joystickY>32767||!Number.isFinite(a.touchSensitivity)||a.touchSensitivity<50||a.touchSensitivity>300)throw new Error("invalid touch controls");Module.eaglerControls.fireEnabled=a.fireEnabled,Module.eaglerControls.focusEnabled=a.focusEnabled,Module.eaglerControls.bombSerial=a.bombSerial,Module.eaglerControls.escapeSerial=a.escapeSerial,Module.eaglerControls.joystickX=a.joystickX,Module.eaglerControls.joystickY=a.joystickY,Module.eaglerOptions.touchSensitivity=a.touchSensitivity,a.request&&b(a.request,!0);break;case"list":b(a.request,!0,{files:N(n)});break;case"read":{const e=FS.readFile(C(a.path));b(a.request,!0,{path:a.path,bytes:Array.from(e)});break}case"write":T(C(a.path)),FS.writeFile(C(a.path),new Uint8Array(a.bytes)),await M(),b(a.request,!0);break;case"remove":FS.unlink(C(a.path)),await M(),b(a.request,!0);break;case"sync":await M(),b(a.request,!0);break;case"retry-music":await(async()=>{const e=[...f.values()];f.clear(),await L(e),f.size||v("music-complete",{loaded:m?.loaded||0,total:m?.total||0})})(),b(a.request,!0);break;default:b(a.request,!1,{error:"unknown command"})}}catch(e){if(a.request){const t="string"==typeof e?.message&&e.message?e.message:Number.isInteger(e?.errno)?`Filesystem error (errno ${e.errno})`:String(e);b(a.request,!1,{error:t,errno:Number.isInteger(e?.errno)?e.errno:null})}}})),window.Module={canvas:document.getElementById("canvas"),locateFile:e=>a?`${e}?v=${encodeURIComponent(a)}`:e,touhouMusicMode:"",eaglerOptions:{thpracEnabled:!1,limitPresentationTo60:!1,touchEnabled:!1,touchMovementMode:"touch",touchSensitivity:100,touchFocusMode:"hold-button",unlimitedTouch:!1,touchBombZoneEnabled:!0,doubleTapBombEnabled:!1,alwaysHitbox:!1,enhanceLocalPlayerVisibility:!1,th06FocusHitbox:!1,thpracLocale:"en-US",oggDecodeMode:"stream",thpracSession:null},eaglerControls:{fireEnabled:!0,focusEnabled:!1,bombSerial:0,escapeSerial:0,joystickX:0,joystickY:0,keyboardBits:0,keyboardPulseBits:0,thpracKeyboardBits:0},preRun:[()=>{addRunDependency("savesth06-sync");try{FS.mkdir(n)}catch(e){String(e).includes("File exists")||console.error(e)}FS.mount(IDBFS,{autoPersist:!0},n);let e=!1;const t=setTimeout((()=>{e||(e=!0,S(new Error("Local save restore timed out; reload the page before retrying")))}),15e3);FS.syncfs(!0,(r=>{e||(e=!0,clearTimeout(t),r?S(new Error(`Local save restore failed: ${r?.message||r}`)):removeRunDependency("savesth06-sync"))}))}],onRuntimeInitialized:()=>{o?(u.textContent="Ready",window.parent.postMessage({protocol:e,game:t,event:"ready",saveRoot:n},location.origin)):D()},setStatus:e=>{u.textContent=e||"";const t=/^Downloading data\.\.\. \((\d+)\/(\d+)\)$/.exec(e||"");if(t){const e=performance.now(),r=Number(t[1]),n=Number(t[2]);w||(w={startedAt:e,lastEmit:0}),(e-w.lastEmit>=200||r>=n)&&(w.lastEmit=e,v("transfer",{kind:"game",mode:"base",loaded:r,total:n,speed:r/Math.max((e-w.startedAt)/1e3,.1)}))}}},Module.canvas.addEventListener("pointerdown",(()=>Module.canvas.focus()));const z=new Map,H=new Map;let q=-1;const j=e=>{const t=Module.canvas.getBoundingClientRect();return[(e.clientX-t.left)/t.width,(e.clientY-t.top)/t.height]};document.addEventListener("pointerdown",(e=>{if("touch"!==e.pointerType||!Module.eaglerOptions.touchEnabled)return;const[t,r]=j(e);if(e.target===Module.canvas)return void H.set(e.pointerId,{id:e.pointerId+1,x:t,y:r});if("function"!=typeof Module._TouhouAuxTouchDown)return;const n={id:q--,x:t,y:r};z.set(e.pointerId,n),Module._TouhouAuxTouchDown(n.id,t,r);try{e.target.setPointerCapture?.(e.pointerId)}catch{}e.preventDefault()}),{capture:!0,passive:!1}),document.addEventListener("pointermove",(e=>{if("touch"!==e.pointerType)return;const t=H.get(e.pointerId);if(t){const[r,n]=j(e);return t.x=r,void(t.y=n)}if(!z.has(e.pointerId))return;const[r,n]=j(e),o=z.get(e.pointerId);o.x=r,o.y=n,"function"==typeof Module._TouhouAuxTouchMotion&&Module._TouhouAuxTouchMotion(o.id,r,n),e.preventDefault()}),{capture:!0,passive:!1});const O=e=>{if("touch"!==e.pointerType)return;const t=z.get(e.pointerId);if(t){z.delete(e.pointerId);const[r,n]=Number.isFinite(e.clientX)?j(e):[t.x,t.y];return"function"==typeof Module._TouhouAuxTouchUp&&Module._TouhouAuxTouchUp(t.id,r,n),void e.preventDefault()}const r=H.get(e.pointerId);if(!r)return;H.delete(e.pointerId);const[n,o]=Number.isFinite(e.clientX)?j(e):[r.x,r.y];"function"==typeof Module._TouhouAuxTouchUp&&Module._TouhouAuxTouchUp(r.id,n,o)};document.addEventListener("pointerup",O,{capture:!0,passive:!1}),document.addEventListener("pointercancel",O,{capture:!0,passive:!1}),document.addEventListener("lostpointercapture",O,{capture:!0,passive:!1});const G=()=>{z.clear(),H.clear(),"function"==typeof Module._TouhouAuxTouchCancelAll&&Module._TouhouAuxTouchCancelAll()},K=e=>{"function"==typeof Module._TouhouWebSetAudioActive&&Module._TouhouWebSetAudioActive(e?1:0)},W=e=>e.preventDefault();for(const e of["contextmenu","selectstart","dragstart","gesturestart","gesturechange","gestureend"])document.addEventListener(e,W,{capture:!0,passive:!1});document.addEventListener("visibilitychange",(()=>{const e="hidden"!==document.visibilityState;K(e),e||(G(),_())})),window.addEventListener("blur",(()=>{G(),_()})),window.addEventListener("pagehide",(()=>{K(!1),G(),_()})),window.addEventListener("pageshow",(()=>K(!0))),Module.canvas.addEventListener("webglcontextlost",(e=>{e.preventDefault(),u.textContent="WebGL context lost. Reload the page."}))})()</script><iframe id="fluidsynth-frame" src="synth.html" allow="autoplay" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none" tabindex="-1" aria-hidden="true"></iframe>
+<script>
+// FluidSynth MIDI bridge -> isolated synth.html (Microsoft GS.sf2)
+(function(){
+var frame=document.getElementById("fluidsynth-frame");
+function post(t){try{if(frame&&frame.contentWindow)frame.contentWindow.postMessage(t,"*")}catch(e){}}
+window.addEventListener("touhou-midi-open",function(){post({type:"open"});console.log("MIDI open -> synth frame")});
+window.addEventListener("touhou-midi-close",function(){post({type:"close"});console.log("MIDI close")});
+window.addEventListener("touhou-midi",function(e){var b=e.detail.bytes;if(b&&b.length)post({type:"midi",bytes:b})});
+document.addEventListener("pointerdown",function(){post({type:"gesture"})},{once:true});
+document.addEventListener("keydown",function(){post({type:"gesture"})},{once:true});
+})();
+</script>
+<script>
+// Web port: scale the 4:3 (640x480) canvas to fit the window or the fullscreen
+// screen while preserving the aspect ratio (letterboxed with black bars).
+// Without this the canvas is pinned to a fixed 640x480 and never responds to
+// the window size. It also re-fits after fullscreen changes, so switching
+// Fullscreen -> Window cannot leave the canvas stretched/squashed ("变扁").
+(function () {
+  var BASE_W = 640, BASE_H = 480;
+  function fitCanvasToViewport() {
+    try {
+      var c = document.getElementById('canvas');
+      var root = document.documentElement;
+      if (!c || !root) return;
+      // When the page itself is fullscreen, innerWidth/innerHeight already
+      // report the full screen, so this covers both windowed and fullscreen.
+      var vw = window.innerWidth || (window.screen && window.screen.width) || BASE_W;
+      var vh = window.innerHeight || (window.screen && window.screen.height) || BASE_H;
+      if (!vw || !vh) return;
+      var scale = Math.min(vw / BASE_W, vh / BASE_H);
+      if (!isFinite(scale) || scale <= 0) scale = 1;
+      var w = Math.max(160, Math.round(BASE_W * scale));
+      var h = Math.max(120, Math.round(BASE_H * scale));
+      root.style.setProperty('--touhou-canvas-width', w + 'px');
+      root.style.setProperty('--touhou-canvas-height', h + 'px');
+      // Safety net: never distort the bitmap even if UA rules resize the canvas.
+      c.style.objectFit = 'contain';
+    } catch (e) {}
+  }
+  window.fitCanvasToViewport = fitCanvasToViewport;
+  fitCanvasToViewport();
+  window.addEventListener('load', fitCanvasToViewport);
+  window.addEventListener('resize', fitCanvasToViewport);
+  window.addEventListener('orientationchange', function () { setTimeout(fitCanvasToViewport, 120); });
+  document.addEventListener('fullscreenchange', function () { setTimeout(fitCanvasToViewport, 60); });
+  document.addEventListener('webkitfullscreenchange', function () { setTimeout(fitCanvasToViewport, 60); });
+})();
+</script>
+<script>
+// Preload bgm/*.flac into MEMFS so WAV mode (FLAC playback) works
+// Uses the runtime's FS_createPath/FS_createDataFile exports (available in preRun),
+// NOT Module.FS (which is not assigned yet at preRun time).
+Module = Module || {};
+Module.preRun = Module.preRun || [];
+Module.preRun.push(function() {
+    var total = 17, done = 0;
+    if (typeof Module.addRunDependency === 'function') Module.addRunDependency('web-bgm');
+    function fin() {
+        done++;
+        if (done >= total) {
+            if (typeof Module.removeRunDependency === 'function') Module.removeRunDependency('web-bgm');
+            console.log('[bgm] all FLACs loaded into MEMFS');
+        }
+    }
+    try {
+        if (typeof Module.FS_createPath === 'function') Module.FS_createPath('/', 'bgm', true, true);
+    } catch(e) { console.warn('[bgm] mkdir: ' + e.message); }
+    for (var i = 1; i <= 17; i++) {
+        (function(num) {
+            var n = (num < 10 ? '0' : '') + num;
+            var url = 'bgm/th06_' + n + '.flac';
+            fetch(url).then(function(r) { return r.ok ? r.arrayBuffer() : null; })
+                .then(function(buf) {
+                    if (buf) {
+                        try {
+                            if (typeof Module.FS_createDataFile === 'function') {
+                                Module.FS_createDataFile('/bgm', 'th06_' + n + '.flac', new Uint8Array(buf), true, true, true);
+                            } else {
+                                Module.FS.writeFile('/bgm/th06_' + n + '.flac', new Uint8Array(buf));
+                            }
+                        } catch(e) { console.warn('[bgm] write fail th06_' + n + '.flac: ' + e.message); }
+                    } else { console.warn('[bgm] missing ' + url); }
+                    fin();
+                })
+                .catch(function(e) { console.warn('[bgm] fetch fail ' + url + ': ' + e.message); fin(); });
+        })(i);
+    }
+});
+</script>
+<script>
+// Web port: restore the persisted MODE (fullscreen / window) and FPS settings.
+// Stored in localStorage so the choice survives reloads and restarts.
+// Module.eaglerOptions is defined by the shell above; the runtime reads
+// limitPresentationTo60 every frame, so setting it here takes effect
+// immediately at startup.
+(function(){
+  var LS_FULLSCREEN = 'th06.fullscreen';   // '1' fullscreen | '0' window
+  var LS_FPS = 'th06.fps';                 // '60' | 'unlimited'
+
+  function read(key, fallback) {
+    try { var v = localStorage.getItem(key); return (v === null || v === undefined) ? fallback : v; }
+    catch (e) { return fallback; }
+  }
+  function write(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+
+  // ---- FPS: default 60 (original one picture per simulation tick) ----
+  try {
+    if (!window.Module) window.Module = {};
+    if (!window.Module.eaglerOptions) window.Module.eaglerOptions = {};
+    window.Module.eaglerOptions.limitPresentationTo60 = (read(LS_FPS, '60') !== 'unlimited');
+  } catch (e) {}
+
+  // ---- MODE: the stored value is the user's PREFERENCE, not the live state ----
+  //
+  // This used to mirror the live state into localStorage on every
+  // fullscreenchange. That broke MODE: anything that programmatically left
+  // fullscreen (the quit path, this file's own startup apply) fired the event
+  // and was written down as "the user chose Window", so the next launch came up
+  // windowed no matter what the menu said.
+  //
+  // Now only *user* fullscreen changes are recorded - the shell suppresses the
+  // event while it is applying a change itself. That keeps "press Esc to leave
+  // fullscreen" updating the preference while making programmatic changes
+  // invisible to it.
+  var isFull = function () {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  };
+  window.__th06FullscreenSync = true; // consulted by every script on the page
+  var syncStored = function () {
+    if (!window.__th06FullscreenSync) return;
+    write(LS_FULLSCREEN, isFull() ? '1' : '0');
+  };
+  document.addEventListener('fullscreenchange', syncStored);
+  document.addEventListener('webkitfullscreenchange', syncStored);
+
+  var refit = function () {
+    try { if (typeof window.fitCanvasToViewport === 'function') setTimeout(window.fitCanvasToViewport, 60); } catch (e) {}
+  };
+
+  // Run a programmatic fullscreen change without letting it overwrite the
+  // stored preference. The event is async, so the flag stays down briefly.
+  function withoutRecording(fn) {
+    window.__th06FullscreenSync = false;
+    try { fn(); } catch (e) {}
+    setTimeout(function () { window.__th06FullscreenSync = true; }, 800);
+  }
+  window.__th06WithoutRecordingFullscreen = withoutRecording;
+
+  function applyFullscreenPreference() {
+    var want = read(LS_FULLSCREEN, '0') === '1';
+    withoutRecording(function () {
+    try {
+      if (want && !isFull()) {
+        var el = document.documentElement;
+        var p = el.requestFullscreen ? el.requestFullscreen()
+              : (el.webkitRequestFullscreen ? el.webkitRequestFullscreen() : null);
+        if (p && typeof p.then === 'function') p.then(refit, refit); else refit();
+      } else if (!want && isFull()) {
+        var q = document.exitFullscreen ? document.exitFullscreen()
+              : (document.webkitExitFullscreen ? document.webkitExitFullscreen() : null);
+        if (q && typeof q.then === 'function') q.then(refit, refit); else refit();
+      }
+    } catch (e) {}
+    });
+  }
+
+  // requestFullscreen() requires a user gesture, so the stored preference is
+  // applied on the first click / key press once the player is actually here.
+  var applied = false;
+  var onFirstGesture = function () {
+    if (applied) return;
+    applied = true;
+    window.removeEventListener('pointerdown', onFirstGesture, true);
+    window.removeEventListener('keydown', onFirstGesture, true);
+    applyFullscreenPreference();
+  };
+  window.addEventListener('pointerdown', onFirstGesture, true);
+  window.addEventListener('keydown', onFirstGesture, true);
+})();
+</script>
+<template id=eagler-runtime-script-template><script async src=th06.js></script></template><script>(async()=>{const e=document.getElementById("eagler-runtime-script-template"),t=e.content.querySelector("script");if(!t)throw new Error("missing Emscripten runtime script");const r=document.createElement("script");for(const e of t.attributes)r.setAttribute(e.name,e.value);const n=t.getAttribute("src"),a=window.__eaglerManagedDataState;if(a?.enabled){const e=window.parent.__eaglerPrepareManagedRuntimeDataV1;if("function"!=typeof e)throw new Error("Managed DATA provider is unavailable");const t=await e({game:a.game,generation:a.generation});if(!t?.buffer||"number"!=typeof t.buffer.byteLength||t.buffer.byteLength!==Number(t.bytes))throw new Error("Managed DATA payload is invalid");const r=new Uint8Array(t.buffer).slice().buffer;Module.getPreloadedPackage=(e,t)=>{if(Number(t)>0&&r.byteLength!==Number(t))throw new Error(`Managed DATA size mismatch: ${r.byteLength}/${t}`);return r}}n?r.setAttribute("src",n):r.textContent=t.textContent,e.replaceWith(r)})().catch((e=>{console.error(e);const t=document.getElementById("status");t&&(t.textContent=`Runtime bootstrap failed: ${e?.message||e}`)}))</script><script>
+// Web port: quitting the game should just close the tab. The original exit
+// hook still runs first (final save sync + host notification), then we try to
+// close the tab. Browsers only honour window.close() for tabs a script opened
+// (e.g. a launcher using window.open); for a manually navigated tab it is
+// refused, so instead of showing an "exited" notice we blank the page silently
+// (about:blank, then a black page as a last resort).
+(function(){
+  var orig = globalThis.EaglerTouhouGameExited;
+  globalThis.EaglerTouhouGameExited = function(e){
+    var result;
+    if (typeof orig === 'function') {
+      try { result = orig(e); } catch(err) { console.error('exit hook error', err); }
+    }
+    // NOTE: deliberately does NOT exit browser fullscreen here.
+    //
+    // Exiting on quit both defeated the MODE row (picking Fullscreen and then
+    // quitting dropped straight back to a window) and corrupted the stored
+    // preference, because the fullscreenchange it fired was mirrored into
+    // localStorage as "the user chose Window". Closing the tab / blanking the
+    // page ends fullscreen by itself, so there is nothing to do.
+    //
+    // Embedded in a host page (launcher iframe): the host owns the frame.
+    try { if (window.parent && window.parent !== window) { return result; } } catch (err) {}
+
+    var closeAndBlank = function () {
+      try { window.close(); } catch (err) {}
+      if (window.closed) { return; }
+      // Retry through a self-targeted opener — honoured by some engines.
+      setTimeout(function () {
+        try { window.open('', '_self'); window.close(); } catch (err) {}
+        if (window.closed) { return; }
+        setTimeout(function () {
+          try { window.stop(); } catch (err) {}
+          try { location.replace('about:blank'); } catch (err) {}
+          setTimeout(function () {
+            try {
+              document.documentElement.style.background = '#000';
+              if (document.body) {
+                document.body.innerHTML = '';
+                document.body.style.background = '#000';
+              }
+            } catch (err) {}
+          }, 200);
+        }, 250);
+      }, 250);
+    };
+
+    // Let the final save sync finish, but never hang on it.
+    if (result && typeof result.then === 'function') {
+      var fired = false;
+      var once = function () { if (!fired) { fired = true; closeAndBlank(); } };
+      result.then(once, once);
+      setTimeout(once, 1500);
+    } else {
+      setTimeout(closeAndBlank, 300);
+    }
+    return result;
+  };
+})();
+</script>
+</body></html>
