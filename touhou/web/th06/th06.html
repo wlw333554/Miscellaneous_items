@@ -63,7 +63,7 @@ Module.preRun.push(function() {
     // message was on screen (usually the data-file counter) stays frozen.
     function bgmStatus() {
         if (typeof Module.setStatus === 'function') {
-            Module.setStatus('加载音乐 预计2分钟... (' + done + '/' + total + ')');
+            Module.setStatus('Loading music... (' + done + '/' + total + ')');
         }
     }
     function fin() {
@@ -318,4 +318,380 @@ const e=document.getElementById("eagler-runtime-script-template"),t=e.content.qu
   };
 })();
 </script>
+<div id="th06env-toggle" title="環境設定">⚙</div>
+<div id="th06env-panel" hidden>
+  <div class="env-head">
+    <span id="env-title">東方紅魔郷 環境カスタムプログラム</span>
+    <select id="env-lang" aria-label="language">
+      <option value="ja">日本語</option>
+      <option value="zh">中文</option>
+    </select>
+  </div>
+
+  <section>
+    <h2 id="env-secFps">フレームレート設定</h2>
+    <label class="env-check">
+      <input type="checkbox" id="env-fps60" />
+      <span id="env-fpsLabel">強制的に60フレームにする</span>
+    </label>
+    <div class="env-hint" id="env-fpsHint"></div>
+  </section>
+
+  <section>
+    <h2 id="env-secReplay">リプレイ管理</h2>
+    <div class="env-row">
+      <span id="env-readLabel">リプレイファイルを読み込む：</span>
+      <input type="file" id="env-fileInput" accept=".rpy,.rpyx" />
+    </div>
+    <div id="env-metaWrap" class="env-hidden">
+      <table class="env-meta" id="env-metaTable"></table>
+    </div>
+    <div class="env-row" style="margin-top:12px;">
+      <button id="env-injectBtn" disabled>リプレイを注入する</button>
+      <button class="env-secondary" id="env-refreshBtn">保存リストを更新</button>
+    </div>
+    <div class="env-hint" id="env-replayHint"></div>
+    <ul class="env-replist" id="env-replist"></ul>
+    <div class="env-log" id="env-log"></div>
+  </section>
+</div>
+
+<style>
+#th06env-toggle {
+  position: fixed; top: 8px; right: 8px; z-index: 99999;
+  width: 38px; height: 38px; line-height: 38px; text-align: center;
+  background: rgba(122,31,23,.85); color: #fff; border-radius: 8px;
+  font-size: 20px; cursor: pointer; user-select: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,.4);
+}
+#th06env-toggle:hover { background: #b3402f; }
+#th06env-panel {
+  position: fixed; top: 54px; right: 8px; z-index: 99999;
+  width: 340px; max-height: 86vh; overflow: auto;
+  background: rgba(28,22,20,.94); color: #f3e9e2;
+  border: 1px solid #b3402f; border-radius: 10px;
+  padding: 14px 16px; box-shadow: 0 6px 20px rgba(0,0,0,.5);
+  font-family: "Hiragino Sans","Yu Gothic","Microsoft YaHei",system-ui,sans-serif;
+  font-size: 14px; line-height: 1.5;
+}
+#th06env-panel[hidden] { display: none; }
+.env-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+#env-title { font-weight: 700; color: #ffd9cf; font-size: 14px; }
+#env-lang { background: #3a2c28; color: #fff; border: 1px solid #b3402f; border-radius: 6px; padding: 4px 6px; font-size: 13px; }
+#th06env-panel section { border-top: 1px solid #5a3a33; padding-top: 10px; margin-top: 10px; }
+#th06env-panel h2 { margin: 0 0 8px; font-size: 14px; color: #ff8c70; }
+.env-check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.env-check input { width: 16px; height: 16px; accent-color: #b3402f; }
+.env-hint { color: #c9b3a8; font-size: 12px; margin-top: 6px; }
+.env-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 6px 0; }
+#th06env-panel button { background: #b3402f; color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+#th06env-panel button.env-secondary { background: #3a2c28; color: #ffd9cf; border: 1px solid #b3402f; }
+#th06env-panel button.env-danger { background: #3a2c28; color: #ff9b8a; border: 1px solid #c0392b; padding: 3px 8px; font-size: 12px; }
+#th06env-panel button:disabled { opacity: .5; cursor: not-allowed; }
+.env-meta { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.env-meta td { padding: 3px 6px; border-bottom: 1px solid #4a352f; }
+.env-meta td.k { color: #c9b3a8; width: 40%; }
+.env-hidden { display: none; }
+.env-replist { list-style: none; padding: 0; margin: 8px 0 0; }
+.env-replist li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 8px; border: 1px solid #5a3a33; border-radius: 6px; margin-bottom: 5px; }
+.env-replist .name { font-family: monospace; font-size: 12px; word-break: break-all; }
+.env-log { margin-top: 10px; font-size: 12px; max-height: 160px; overflow: auto; }
+.env-log div { padding: 3px 0; border-bottom: 1px dashed #4a352f; }
+.env-log .ok { color: #7fdca0; }
+.env-log .err { color: #ff8c70; }
+</style>
+
+<script>
+(function () {
+  "use strict";
+  var I18N = {
+    ja: {
+      title: "東方紅魔郷 環境カスタムプログラム",
+      secFps: "フレームレート設定",
+      fpsLabel: "強制的に60フレームにする",
+      fpsHintOn: "現在「60フレーム固定」が有効です。次回ゲーム起動時に反映されます。",
+      fpsHintOff: "現在「制限なし（ネイティブ）」です。次回ゲーム起動時に反映されます。",
+      secReplay: "リプレイ管理",
+      readLabel: "リプレイファイルを読み込む：",
+      injectBtn: "リプレイを注入する",
+      refreshBtn: "保存リストを更新",
+      replayHint: "【読み込み】ファイルを選ぶとヘッダ情報を表示。【注入】ゲームのセーブ領域(IndexedDB /savesth06/replay)に書き込み、次回起動時のリプレイ一覧に表示されます(自動で th6_NN.rpy 名に変換、01〜15 がメニューに表示)。【削除】保存領域から削除します。",
+      mCharacter: "キャラクター", mShot: "ショット", mDifficulty: "難易度", mDate: "日付",
+      mName: "プレイヤー名", mScore: "スコア", mVersion: "バージョン", mExt: "拡張形式(.rpyx)", mSize: "ファイルサイズ",
+      invalid: "無効なリプレイファイルです（T6RP マジックが見つかりません）。",
+      injected: function (n) { return "注入完了：" + n + " をゲームのセーブ領域に書き込みました。"; },
+      injectFail: function (e) { return "注入失敗：" + e; },
+      deleted: function (n) { return "削除完了：" + n; },
+      listEmpty: "保存領域にリプレイはありません。",
+      listErr: function (e) { return "リスト取得失敗：" + e; },
+      readOk: "ヘッダを解析しました。",
+      noFile: "ファイルが選択されていません。",
+      full: "リプレイ枠がいっぱいです(最大99)",
+      confirmDel: function (n) { return "本当に削除しますか？ " + n; },
+      over15: function (n) { return "注入完了：" + n + "（※16以上はメニューに表示されません）"; }
+    },
+    zh: {
+      title: "东方红魔乡 环境自定义程序",
+      secFps: "帧率设置",
+      fpsLabel: "强制设定为60帧",
+      fpsHintOn: "当前已启用「强制 60 帧」。下次启动游戏时生效。",
+      fpsHintOff: "当前为「不限制（原生帧率）」。下次启动游戏时生效。",
+      secReplay: "录像管理",
+      readLabel: "读取录像文件：",
+      injectBtn: "注入录像",
+      refreshBtn: "刷新存档列表",
+      replayHint: "【读取】选择文件即可显示头部信息。【注入】写入游戏的存档区(IndexedDB /savesth06/replay)，下次启动时出现在录像列表中(自动重命名为 th6_NN.rpy，01–15 才会显示在菜单)。【删除】从存档区移除。",
+      mCharacter: "角色", mShot: "机体", mDifficulty: "难度", mDate: "日期",
+      mName: "玩家名", mScore: "分数", mVersion: "版本", mExt: "扩展格式(.rpyx)", mSize: "文件大小",
+      invalid: "无效的录像文件（未找到 T6RP 标识）。",
+      injected: function (n) { return "注入完成：已将 " + n + " 写入游戏存档区。"; },
+      injectFail: function (e) { return "注入失败：" + e; },
+      deleted: function (n) { return "删除完成：" + n; },
+      listEmpty: "存档区中没有录像。",
+      listErr: function (e) { return "获取列表失败：" + e; },
+      readOk: "已解析头部信息。",
+      noFile: "尚未选择文件。",
+      full: "录像槽已满(最多 99)",
+      confirmDel: function (n) { return "确定删除吗？ " + n; },
+      over15: function (n) { return "注入完成：" + n + "（※超过 15 不会显示在菜单）"; }
+    }
+  };
+
+  var lang = "ja";
+  var LS_FPS = "th06.fps";
+  var SAVE_ROOT = "/savesth06";
+  var REPLAY_DIR = SAVE_ROOT + "/replay";
+  var IDB_NAME = SAVE_ROOT;
+  var IDB_VERSION = 21;
+  var STORE = "FILE_DATA";
+  var DIFFS = ["Easy", "Normal", "Hard", "Lunatic", "Extra"];
+  var CHARS = ["Reimu", "Marisa"];
+  var SHOTS = ["A", "B"];
+
+  function $(id) { return document.getElementById(id); }
+  function t(key) { var v = I18N[lang][key]; return typeof v === "function" ? v() : v; }
+  function log(msg, cls) {
+    var el = $("env-log");
+    var d = document.createElement("div");
+    if (cls) d.className = cls;
+    d.textContent = "• " + msg;
+    el.insertBefore(d, el.firstChild);
+  }
+  function applyLang() {
+    var s = I18N[lang];
+    $("env-title").textContent = s.title;
+    $("env-secFps").textContent = s.secFps;
+    $("env-fpsLabel").textContent = s.fpsLabel;
+    $("env-secReplay").textContent = s.secReplay;
+    $("env-readLabel").textContent = s.readLabel;
+    $("env-injectBtn").textContent = s.injectBtn;
+    $("env-refreshBtn").textContent = s.refreshBtn;
+    $("env-replayHint").textContent = s.replayHint;
+    updateFpsHint();
+  }
+
+  // ---- 60fps (localStorage th06.fps) ----
+  var fpsBox = $("env-fps60");
+  function readFps() { try { return localStorage.getItem(LS_FPS) || "60"; } catch (e) { return "60"; } }
+  function updateFpsHint() { $("env-fpsHint").textContent = readFps() === "60" ? I18N[lang].fpsHintOn : I18N[lang].fpsHintOff; }
+  fpsBox.checked = readFps() === "60";
+  fpsBox.addEventListener("change", function () {
+    try { localStorage.setItem(LS_FPS, fpsBox.checked ? "60" : "unlimited"); } catch (e) {}
+    updateFpsHint();
+    log(fpsBox.checked ? (lang === "ja" ? "60フレーム固定 → 保存" : "已保存：强制 60 帧")
+                       : (lang === "ja" ? "制限なし → 保存" : "已保存：不限制帧率"), "ok");
+  });
+
+  // ---- replay header parse ----
+  var currentFile = null;
+  function decodeSJIS(bytes) {
+    try { return new TextDecoder("shift_jis").decode(bytes).replace(/\0+$/, "").trim(); }
+    catch (e) { return Array.prototype.map.call(bytes, function (b) { return (b >= 0x20 && b < 0x80) ? String.fromCharCode(b) : ""; }).join("").trim(); }
+  }
+  function parseReplay(bytes) {
+    if (bytes.length < 77) return null;
+    var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    var magic = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+    if (magic !== "T6RP") return null;
+    var version = dv.getUint16(4, true);
+    var shottypeChara = bytes[6];
+    var difficulty = bytes[7];
+    var date = decodeSJIS(bytes.slice(16, 25));
+    var name = decodeSJIS(bytes.slice(25, 33));
+    var score = dv.getInt32(33, true);
+    var tail = bytes.length >= 4 ? String.fromCharCode(bytes[bytes.length - 4], bytes[bytes.length - 3], bytes[bytes.length - 2], bytes[bytes.length - 1]) : "";
+    var ext = tail === "EAGX";
+    var character = Math.floor(shottypeChara / 2);
+    var shot = shottypeChara % 2;
+    return { version: version, character: character, shot: shot, difficulty: difficulty, date: date, name: name, score: score, ext: ext, size: bytes.length,
+             valid: shottypeChara < 4 && difficulty < 5 };
+  }
+  function showMeta(info) {
+    var s = I18N[lang];
+    var tbl = $("env-metaTable");
+    $("env-metaWrap").classList.remove("env-hidden");
+    var rows = [
+      [s.mCharacter, CHARS[info.character] || ("?:" + info.character)],
+      [s.mShot, SHOTS[info.shot] || ("?:" + info.shot)],
+      [s.mDifficulty, DIFFS[info.difficulty] || ("?:" + info.difficulty)],
+      [s.mDate, info.date || "—"],
+      [s.mName, info.name || "—"],
+      [s.mScore, info.score.toLocaleString()],
+      [s.mVersion, String(info.version)],
+      [s.mExt, info.ext ? "Yes (.rpyx)" : "No (.rpy)"],
+      [s.mSize, (info.size / 1024).toFixed(1) + " KB"]
+    ];
+    tbl.innerHTML = "";
+    for (var i = 0; i < rows.length; i++) {
+      var tr = document.createElement("tr");
+      var td1 = document.createElement("td"); td1.className = "k"; td1.textContent = rows[i][0];
+      var td2 = document.createElement("td"); td2.textContent = rows[i][1];
+      tr.appendChild(td1); tr.appendChild(td2); tbl.appendChild(tr);
+    }
+    if (!info.valid) log(t("invalid"), "err");
+  }
+  $("env-fileInput").addEventListener("change", function (e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var bytes = new Uint8Array(reader.result);
+      var info = parseReplay(bytes);
+      if (!info) {
+        currentFile = null;
+        $("env-metaWrap").classList.add("env-hidden");
+        $("env-injectBtn").disabled = true;
+        log(t("invalid"), "err");
+        return;
+      }
+      currentFile = { name: f.name, bytes: bytes, ext: info.ext };
+      showMeta(info);
+      $("env-injectBtn").disabled = false;
+      log(t("readOk") + " " + f.name, "ok");
+    };
+    reader.readAsArrayBuffer(f);
+  });
+
+  // ---- IndexedDB (IDBFS) ----
+  function openIdbfs() {
+    return new Promise(function (resolve, reject) {
+      var req = indexedDB.open(IDB_NAME, IDB_VERSION);
+      req.onupgradeneeded = function (e) {
+        var db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          var store = db.createObjectStore(STORE);
+          store.createIndex("timestamp", "timestamp", { unique: false });
+        }
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+  function pad2(n) { return String(n).padStart(2, "0"); }
+  function nextReplayNumber(keys, ext) {
+    var used = {};
+    var re = /^th6_(\d{2})\.(rpy|rpyx)$/;
+    for (var i = 0; i < keys.length; i++) {
+      var base = keys[i].slice(REPLAY_DIR.length + 1);
+      var m = re.exec(base);
+      if (m && m[2] === ext) used[parseInt(m[1], 10)] = true;
+    }
+    for (var n = 1; n <= 15; n++) if (!used[n]) return n;
+    for (var n2 = 16; n2 <= 99; n2++) if (!used[n2]) return n2;
+    return -1;
+  }
+  function injectReplay() {
+    if (!currentFile) { log(t("noFile"), "err"); return; }
+    var ext = currentFile.ext ? "rpyx" : "rpy";
+    var keys = [];
+    openIdbfs()
+      .then(function (db) {
+        return new Promise(function (resolve, reject) {
+          var tx = db.transaction(STORE, "readonly");
+          var req = tx.objectStore(STORE).openKeyCursor();
+          req.onsuccess = function (e) {
+            var cur = e.target.result;
+            if (cur) { if (cur.key.indexOf(REPLAY_DIR + "/") === 0) keys.push(cur.key); cur.continue(); }
+          };
+          tx.oncomplete = function () { db.close(); resolve(); };
+          tx.onerror = function () { db.close(); reject(tx.error); };
+        });
+      })
+      .then(function () {
+        var nn = nextReplayNumber(keys, ext);
+        if (nn < 0) { log(t("full"), "err"); return; }
+        var name = "th6_" + pad2(nn) + "." + ext;
+        var dirEntry = { timestamp: Date.now(), mode: 0o040755 };
+        var fileEntry = { timestamp: Date.now(), mode: 0o100644, contents: currentFile.bytes };
+        return openIdbfs().then(function (db) {
+          return new Promise(function (resolve, reject) {
+            var tx = db.transaction(STORE, "readwrite");
+            tx.objectStore(STORE).put(dirEntry, REPLAY_DIR);
+            tx.objectStore(STORE).put(fileEntry, REPLAY_DIR + "/" + name);
+            tx.oncomplete = function () { db.close(); resolve(name); };
+            tx.onerror = function () { db.close(); reject(tx.error); };
+          });
+        }).then(function (n) {
+          log(nn > 15 ? t("over15")(n) : t("injected")(n), "ok");
+          refreshList();
+        });
+      })
+      .catch(function (err) { log(t("injectFail")(err), "err"); });
+  }
+  function deleteReplay(key) {
+    if (!confirm(t("confirmDel")(key))) return;
+    openIdbfs().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(STORE, "readwrite");
+        tx.objectStore(STORE).delete(key);
+        tx.oncomplete = function () { db.close(); resolve(); };
+        tx.onerror = function () { db.close(); reject(tx.error); };
+      });
+    }).then(function () {
+      log(t("deleted")(key), "ok");
+      refreshList();
+    }).catch(function (err) { log(t("listErr")(err), "err"); });
+  }
+  function refreshList() {
+    openIdbfs().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var out = [];
+        var tx = db.transaction(STORE, "readonly");
+        var req = tx.objectStore(STORE).openKeyCursor();
+        req.onsuccess = function (e) {
+          var cur = e.target.result;
+          if (cur) { if (cur.key.indexOf(REPLAY_DIR + "/") === 0 && /\.(rpy|rpyx)$/i.test(cur.key)) out.push(cur.key); cur.continue(); }
+        };
+        tx.oncomplete = function () { db.close(); resolve(out); };
+        tx.onerror = function () { db.close(); reject(tx.error); };
+      });
+    }).then(function (list) {
+      var ul = $("env-replist");
+      ul.innerHTML = "";
+      if (list.length === 0) { log(t("listEmpty")); return; }
+      for (var i = 0; i < list.length; i++) {
+        (function (key) {
+          var li = document.createElement("li");
+          var span = document.createElement("span");
+          span.className = "name"; span.textContent = key.slice(REPLAY_DIR.length + 1);
+          var btn = document.createElement("button");
+          btn.className = "env-danger"; btn.textContent = lang === "ja" ? "削除" : "删除";
+          btn.onclick = function () { deleteReplay(key); };
+          li.appendChild(span); li.appendChild(btn);
+          ul.appendChild(li);
+        })(list[i]);
+      }
+    }).catch(function (err) { log(t("listErr")(err), "err"); });
+  }
+  $("env-injectBtn").addEventListener("click", injectReplay);
+  $("env-refreshBtn").addEventListener("click", refreshList);
+
+  // ---- toggle + init ----
+  $("env-lang").addEventListener("change", function (e) { lang = e.target.value; applyLang(); });
+  $("th06env-toggle").addEventListener("click", function () { $("th06env-panel").hidden = !$("th06env-panel").hidden; });
+  applyLang();
+  refreshList();
+})();
+</script>
+
 </body></html>
