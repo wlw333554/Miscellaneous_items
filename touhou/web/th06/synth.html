@@ -1,0 +1,80 @@
+<!doctype html><html><head><meta charset=utf-8></head><body>
+<script src="js-synthesizer.js"></script>
+<script>
+// FluidSynth MIDI host with Microsoft GS.sf2 (isolated from the game runtime).
+//
+// Web port fix for MIDI stutter: instead of the deprecated main-thread
+// ScriptProcessorNode (js-synthesizer's Synthesizer.createAudioNode), we use
+// AudioWorkletNodeSynthesizer. FluidSynth runs on the dedicated audio-render
+// thread, so MIDI event timing no longer competes with the main thread and the
+// audio callback is sample-accurate (no per-buffer glitches).
+//
+// libfluidsynth-2.4.6.js is loaded ONLY as an AudioWorklet module here (not as a
+// main-thread <script>), so the heavy synth never initializes on the main thread.
+(function(){
+var synth=null, actx=null, sf2Ready=false, sf2Loading=null, outNode=null, pending=[];
+function ensureAudio(){
+  if(actx){ if(actx.state==="suspended") actx.resume(); return true; }
+  try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }
+  catch(e){ return false; }
+  return true;
+}
+function ensureG(){ if(actx && actx.state==="suspended") actx.resume(); }
+function initFluidSynth(){
+  if(sf2Ready) return Promise.resolve();
+  if(sf2Loading) return sf2Loading;
+  sf2Loading=(async function(){
+    try{
+      ensureAudio();
+      if(!actx) throw new Error("AudioContext unavailable");
+      // Load FluidSynth + the worklet processor into the audio render thread.
+      await actx.audioWorklet.addModule("libfluidsynth-2.4.6.js");
+      await actx.audioWorklet.addModule("js-synthesizer.worklet.js");
+      synth=new JSSynth.AudioWorkletNodeSynthesizer();
+      synth.init(actx.sampleRate);
+      // createAudioNode returns the AudioWorkletNode; connect it to output.
+      outNode=synth.createAudioNode(actx,{midiChannelCount:16,initialGain:0.5});
+      outNode.connect(actx.destination);
+      var res=await fetch("Microsoft GS.sf2");
+      if(!res.ok) throw new Error("SF2 HTTP "+res.status);
+      var buf=await res.arrayBuffer();
+      await synth.loadSFont(buf);
+      sf2Ready=true;
+      console.log("[synth] FluidSynth (AudioWorklet) ready with Microsoft GS.sf2");
+      if(pending.length){ var q=pending; pending=[]; for(var k=0;k<q.length;k++) sendMidi(q[k]); }
+    }catch(e){ console.error("[synth] init failed:",e); }
+    sf2Loading=null;
+  })();
+  return sf2Loading;
+}
+function sendMidi(bytes){
+  if(!synth||!sf2Ready||!bytes||!bytes.length) return;
+  var i=0,n=bytes.length;
+  while(i<n){
+    var b=bytes[i]&255;
+    if(b>=0xF0&&b<=0xF7){ var j=i+1; while(j<n&&(bytes[j]&255)<0x80)j++; synth.midiSysEx(new Uint8Array(bytes.slice(i,j))); i=j; continue; }
+    if(b<0x80){ i++; continue; }
+    var ch=b&15,cmd=b&0xF0,d1=i+1<n?bytes[i+1]&255:0,d2=i+2<n?bytes[i+2]&255:0;
+    switch(cmd){
+      case 0x80: synth.midiNoteOff(ch,d1); i+=2; break;
+      case 0x90: d2>0?synth.midiNoteOn(ch,d1,d2):synth.midiNoteOff(ch,d1); i+=2; break;
+      case 0xA0: synth.midiKeyPressure(ch,d1,d2); i+=2; break;
+      case 0xB0: synth.midiControl(ch,d1,d2); i+=2; break;
+      case 0xC0: synth.midiProgramChange(ch,d1); i+=1; break;
+      case 0xD0: synth.midiChannelPressure(ch,d1); i+=1; break;
+      case 0xE0: synth.midiPitchBend(ch,d1|(d2<<7)); i+=2; break;
+      default: i++; break;
+    }
+  }
+}
+window.addEventListener("message",function(ev){
+  var d=ev.data; if(!d||typeof d!=="object"||typeof d.type!=="string") return;
+  if(d.type==="open"){ initFluidSynth(); ensureG(); }
+  else if(d.type==="close"){ if(synth&&sf2Ready) synth.midiAllNotesOff(); }
+  else if(d.type==="midi"){ if(!sf2Ready){ pending.push(d.bytes); return; } ensureG(); sendMidi(d.bytes); }
+  else if(d.type==="gesture"){ ensureG(); }
+});
+try{ parent.postMessage({type:"synth-frame-ready"},"*"); }catch(e){}
+})();
+</script>
+</body></html>
