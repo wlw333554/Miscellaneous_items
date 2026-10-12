@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>随机猪猪 · 清新绿</title>
+  <style>
+    :root {
+      --green-50:  #f1fbf5;
+      --green-100: #e3f8ec;
+      --green-300: #9be3bd;
+      --green-400: #52cf8c;
+      --green-500: #2fbd72;
+      --green-600: #1fa75f;
+      --green-700: #178a4e;
+      --ink:       #1f3d2b;
+      --ink-soft:  #5b7a68;
+      --card:      #ffffff;
+      --shadow:    0 10px 30px rgba(31,167,95,.12);
+      --shadow-sm: 0 4px 14px rgba(31,167,95,.10);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                   "Hiragino Sans GB", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 50% -10%, var(--green-100), transparent 60%),
+        linear-gradient(180deg, var(--green-50) 0%, #ffffff 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    header { text-align: center; }
+
+    header h1 {
+      margin: 0;
+      font-size: 30px;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, var(--green-600), var(--green-400));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    header p {
+      margin: 8px 0 0;
+      color: var(--ink-soft);
+      font-size: 14px;
+    }
+
+    /* Image stage */
+    .stage { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+    .image-card {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      max-height: 420px;
+      border-radius: 24px;
+      background:
+        repeating-linear-gradient(45deg, #f5fcf8 0 12px, #eefaf3 12px 24px);
+      border: 1px solid var(--green-100);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* 图片绝对定位铺满卡片，避免和占位文字在 flex 行里互相挤压 */
+    .image-card img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      animation: pop .35s ease;
+    }
+    /* hidden 属性必须真正隐藏（盖过上面的 display:block） */
+    .image-card img[hidden] { display: none; }
+
+    @keyframes pop {
+      from { transform: scale(.92); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .placeholder {
+      text-align: center;
+      color: var(--ink-soft);
+      font-size: 17px;
+      font-weight: 500;
+      line-height: 1.8;
+      padding: 24px 28px;
+      user-select: none;
+    }
+
+    .meta {
+      min-height: 20px;
+      font-size: 13px;
+      color: var(--ink-soft);
+      text-align: center;
+    }
+    .meta b { color: var(--green-700); }
+
+    /* Button */
+    .controls { display: flex; justify-content: center; }
+
+    .roll-btn {
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      padding: 16px 40px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #fff;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--green-400), var(--green-600));
+      box-shadow: 0 8px 22px rgba(31,167,95,.35);
+      transition: transform .12s ease, box-shadow .12s ease, opacity .2s ease;
+    }
+    .roll-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(31,167,95,.42); }
+    .roll-btn:active:not(:disabled) { transform: translateY(0); }
+    .roll-btn:disabled { opacity: .55; cursor: progress; }
+
+    /* Progress */
+    .progress-wrap {
+      background: var(--card);
+      border: 1px solid var(--green-100);
+      border-radius: 20px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .progress-wrap[hidden] { display: none; }
+
+    .steps { display: flex; justify-content: space-between; gap: 8px; }
+
+    .step {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--ink-soft);
+      padding: 6px 4px;
+      border-radius: 12px;
+      background: var(--green-50);
+      transition: all .25s ease;
+    }
+    .step .dot {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--green-100);
+      color: var(--green-700);
+      font-size: 12px; font-weight: 700;
+      transition: all .25s ease;
+    }
+    .step.active { background: var(--green-100); color: var(--green-700); font-weight: 700; }
+    .step.active .dot { background: var(--green-500); color: #fff; box-shadow: 0 0 0 4px rgba(47,189,114,.18); }
+    .step.done .dot { background: var(--green-600); color: #fff; }
+    .step.done .dot::after { content: "✓"; }
+    .step.done .dot span { display: none; }
+
+    .bar {
+      height: 12px;
+      border-radius: 999px;
+      background: var(--green-100);
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--green-400), var(--green-600));
+      transition: width .25s ease;
+    }
+    .bar.error .bar-fill { background: linear-gradient(90deg, #ff9a8b, #ff6b6b); }
+
+    .status {
+      font-size: 13px;
+      color: var(--ink-soft);
+      text-align: center;
+      min-height: 18px;
+    }
+    .status.error { color: #d64545; font-weight: 600; }
+    .status.ok { color: var(--green-700); font-weight: 600; }
+
+    footer { text-align: center; font-size: 12px; color: #9bb3a4; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>🐷 随机猪猪</h1>
+      <p>点击按钮，抽取一只随机猪猪</p>
+    </header>
+
+    <section class="stage">
+      <div class="image-card" id="imageCard">
+        <div class="placeholder" id="placeholder">
+          点击下方按钮<br>召唤一只随机猪猪
+        </div>
+        <img id="pigImage" alt="随机猪猪" hidden />
+      </div>
+      <div class="meta" id="meta"></div>
+    </section>
+
+    <div class="controls">
+      <button id="rollBtn" class="roll-btn">🎲 随机猪猪</button>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap" hidden>
+      <div class="steps">
+        <div class="step" data-step="1"><span class="dot"><span>1</span></span>加载 7z</div>
+        <div class="step" data-step="2"><span class="dot"><span>2</span></span>解压</div>
+        <div class="step" data-step="3"><span class="dot"><span>3</span></span>随机挑选</div>
+      </div>
+      <div class="bar" id="bar"><div class="bar-fill" id="barFill"></div></div>
+      <div class="status" id="statusText">准备中…</div>
+    </div>
+
+    <footer>纯前端 · 浏览器内 7z 解压（libarchive.js · WASM）</footer>
+  </div>
+
+  <script type="module" src="asset/js/app.js"></script>
+</body>
+</html>
