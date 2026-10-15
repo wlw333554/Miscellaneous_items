@@ -113,16 +113,24 @@
       user-select: none;
     }
 
-    .meta {
-      min-height: 20px;
-      font-size: 13px;
-      color: var(--ink-soft);
-      text-align: center;
-    }
-    .meta b { color: var(--green-700); }
-
     /* Button */
-    .controls { display: flex; justify-content: center; }
+    .controls { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+
+    .dl-btn {
+      appearance: none;
+      text-decoration: none;
+      cursor: pointer;
+      padding: 13px 26px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--green-700);
+      border: 2px solid var(--green-400);
+      border-radius: 999px;
+      background: #fff;
+      transition: transform .12s ease, background .12s ease, box-shadow .12s ease;
+    }
+    .dl-btn:hover:not([hidden]) { background: var(--green-50); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(31,167,95,.18); }
+    .dl-btn[hidden] { display: none; }
 
     .roll-btn {
       appearance: none;
@@ -155,36 +163,6 @@
     }
     .progress-wrap[hidden] { display: none; }
 
-    .steps { display: flex; justify-content: space-between; gap: 8px; }
-
-    .step {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-size: 13px;
-      color: var(--ink-soft);
-      padding: 6px 4px;
-      border-radius: 12px;
-      background: var(--green-50);
-      transition: all .25s ease;
-    }
-    .step .dot {
-      width: 22px; height: 22px;
-      border-radius: 50%;
-      display: inline-flex; align-items: center; justify-content: center;
-      background: var(--green-100);
-      color: var(--green-700);
-      font-size: 12px; font-weight: 700;
-      transition: all .25s ease;
-    }
-    .step.active { background: var(--green-100); color: var(--green-700); font-weight: 700; }
-    .step.active .dot { background: var(--green-500); color: #fff; box-shadow: 0 0 0 4px rgba(47,189,114,.18); }
-    .step.done .dot { background: var(--green-600); color: #fff; }
-    .step.done .dot::after { content: "✓"; }
-    .step.done .dot span { display: none; }
-
     .bar {
       height: 12px;
       border-radius: 999px;
@@ -208,8 +186,6 @@
     }
     .status.error { color: #d64545; font-weight: 600; }
     .status.ok { color: var(--green-700); font-weight: 600; }
-
-    footer { text-align: center; font-size: 12px; color: #9bb3a4; }
   </style>
 </head>
 <body>
@@ -226,24 +202,17 @@
         </div>
         <img id="pigImage" alt="随机猪猪" hidden />
       </div>
-      <div class="meta" id="meta"></div>
     </section>
 
     <div class="controls">
       <button id="rollBtn" class="roll-btn">🎲 随机猪猪</button>
+      <a id="dlBtn" class="dl-btn" hidden>⬇ 下载图片</a>
     </div>
 
     <div class="progress-wrap" id="progressWrap" hidden>
-      <div class="steps">
-        <div class="step" data-step="1"><span class="dot"><span>1</span></span>加载 7z</div>
-        <div class="step" data-step="2"><span class="dot"><span>2</span></span>解压</div>
-        <div class="step" data-step="3"><span class="dot"><span>3</span></span>随机挑选</div>
-      </div>
       <div class="bar" id="bar"><div class="bar-fill" id="barFill"></div></div>
       <div class="status" id="statusText">准备中…</div>
     </div>
-
-    <footer>纯前端 · 浏览器内 7z 解压（libarchive.js · WASM）</footer>
   </div>
 
   <script type="module" src="asset/js/app.js"></script>
