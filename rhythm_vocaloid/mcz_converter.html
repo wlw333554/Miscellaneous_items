@@ -701,17 +701,18 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             const a=audio[0];
             if(!Number.isFinite(a.offset??0)) fail('非法音频偏移');
             const round=n=>Math.round(n*1e6)/1e6;
-            const TAP_DURATION=0.08;      // 正常单点长度（秒）
-            const HOLD_MIN_DURATION=0.4;  // 短于此值的长条按普通单点输出
+            const TAP_DURATION=0.08;    // 正常单点长度（秒）
+            const HOLD_EPSILON=0.081;   // 长条最短时长：必须严格大于单点0.08，否则播放器会当单点
             const notes=all.filter(n=>n.type!==1).map((n,i)=>{
                 if(!Number.isInteger(n.column)||n.column<0||n.column>3) fail('四轨column必须是0..3；不自动猜测其他键数');
                 const time=at(n.beat);
                 const hasEnd=n.endbeat!==undefined;
                 const rawDuration=hasEnd?at(n.endbeat)-time:0;
                 if(rawDuration<0) fail('长按结束早于开始');
-                // 长条长度不足 0.4 秒时会被播放器当成普通单点，这里直接输出 tap
-                const hold=hasEnd&&rawDuration>=HOLD_MIN_DURATION;
-                const duration=hold?rawDuration:TAP_DURATION;
+                // 谱面里凡是带 endbeat 的都是长条，一律保留为 hold（短长条是难度设计，不能压成单点）。
+                // 但时长必须严格大于单点0.08，否则播放器判据 duration>0.08 不成立会退化成单点，故取最小值0.081。
+                const hold=hasEnd&&rawDuration>0;
+                const duration=hold?Math.max(rawDuration,HOLD_EPSILON):TAP_DURATION;
                 return {id:`n${String(i+1).padStart(4,'0')}`,time:round(time),lane:n.column+1,type:hold?'hold':'tap',duration:round(duration),sourceColumn:n.column,sourceBeat:n.beat,...(hold?{sourceEndBeat:n.endbeat}:{})};
             }).sort((a,b)=>a.time-b.time);
             const meta=data.meta||{}, song=meta.song||{};
@@ -1137,13 +1138,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
                     const timeSec = this.beatToSeconds(beat, beatDuration);
                     const TAP_DURATION = 0.08;   // 正常单点长度（秒）
-                    const HOLD_MIN_DURATION = 0.4; // 短于此值的长条按普通单点输出
+                    const HOLD_EPSILON = 0.081;  // 长条最短时长：须严格大于单点0.08
                     let duration = TAP_DURATION;
                     if (endbeat) {
                         const endSec = this.beatToSeconds(endbeat, beatDuration);
                         const rawDuration = endSec - timeSec;
-                        // 不足 0.4 秒的长条当作普通单点
-                        duration = rawDuration >= HOLD_MIN_DURATION ? rawDuration : TAP_DURATION;
+                        // 带 endbeat 的一律保留成长条（短长条是难度设计），并保证时长 > 单点
+                        if (rawDuration > 0) duration = Math.max(rawDuration, HOLD_EPSILON);
                     }
 
                     // Malody column: 1=左轨(low), 2=右轨(high)
