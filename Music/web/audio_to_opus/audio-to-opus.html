@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLAC / MP3 / M4A → Opus 最高压缩转换器</title>
+<style>
+  :root{
+    --blue:#1a73e8;
+    --blue-dark:#1558c0;
+    --blue-light:#e8f0fe;
+    --blue-border:#c6dafc;
+    --ink:#1f2328;
+    --ink-2:#5b6470;
+    --ink-3:#8b949e;
+    --line:#e6e9ee;
+    --ok:#1e8e3e;
+    --warn:#b06000;
+    --err:#d93025;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#ffffff;color:var(--ink);
+    font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+    font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:36px 20px 80px}
+  h1{font-size:26px;line-height:1.3;margin:0 0 8px;font-weight:700;letter-spacing:.2px}
+  h1 .accent{color:var(--blue)}
+  .sub{color:var(--ink-2);font-size:14px;margin:0 0 26px}
+  .sub code{background:#f6f8fa;border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:13px}
+
+  #drop{
+    border:2px dashed var(--blue-border);border-radius:14px;background:#fff;
+    padding:34px 20px;text-align:center;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .1s;
+  }
+  #drop:hover{background:#fbfdff;border-color:var(--blue)}
+  #drop.drag{background:var(--blue-light);border-color:var(--blue);transform:scale(1.004)}
+  #drop .big{font-size:16px;font-weight:600;color:var(--ink)}
+  #drop .big em{font-style:normal;color:var(--blue)}
+  #drop .small{font-size:13px;color:var(--ink-3);margin-top:6px}
+  #drop .icon{font-size:26px;line-height:1;margin-bottom:8px;color:var(--blue)}
+
+  .panel{border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-top:18px;background:#fff}
+  .panel h2{font-size:14px;margin:0 0 14px;color:var(--ink-2);font-weight:600;letter-spacing:.3px}
+  .row{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+  .row + .row{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+  .row .label{min-width:80px;font-size:13px;color:var(--ink-2)}
+
+  .seg{display:flex;flex-wrap:wrap;gap:8px}
+  .seg button{
+    border:1px solid var(--blue-border);background:#fff;color:var(--ink);
+    border-radius:9px;padding:8px 13px;font-size:13.5px;cursor:pointer;line-height:1.2;
+    transition:all .12s;font-family:inherit;
+  }
+  .seg button span{font-weight:600}
+  .seg button b{display:block;font-size:12px;color:var(--ink-3);font-weight:500;margin-top:2px}
+  .seg button:hover{border-color:var(--blue);background:#fbfdff}
+  .seg button.on{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(26,115,232,.22)}
+  .seg button.on b{color:rgba(255,255,255,.82)}
+
+  label.chk{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;cursor:pointer;color:var(--ink)}
+  label.chk input{accent-color:var(--blue);width:15px;height:15px;cursor:pointer}
+
+  select,input[type=number]{
+    font-family:inherit;font-size:13.5px;padding:7px 9px;border:1px solid var(--line);
+    border-radius:8px;background:#fff;color:var(--ink);outline:none;
+  }
+  select:focus,input[type=number]:focus{border-color:var(--blue)}
+  input[type=number]{width:92px}
+
+  .btn{
+    font-family:inherit;font-size:14px;font-weight:600;border-radius:10px;padding:10px 20px;
+    border:1px solid transparent;cursor:pointer;transition:all .12s;line-height:1.2;
+  }
+  .btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .btn-primary:hover:not(:disabled){background:var(--blue-dark);border-color:var(--blue-dark);box-shadow:0 3px 10px rgba(26,115,232,.25)}
+  .btn-ghost{background:#fff;color:var(--blue);border-color:var(--blue-border)}
+  .btn-ghost:hover:not(:disabled){border-color:var(--blue);background:var(--blue-light)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+  .btn-sm{padding:5px 12px;font-size:12.5px;border-radius:8px;font-weight:500}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:20px}
+  .hint{font-size:12.5px;color:var(--ink-3)}
+
+  #engine{
+    margin-top:16px;border:1px solid var(--blue-border);background:var(--blue-light);
+    border-radius:10px;padding:12px 14px;font-size:13px;color:var(--blue-dark);display:none;
+  }
+  #engine.show{display:block}
+  #engine .etop{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px}
+  .bar{height:6px;background:rgba(26,115,232,.16);border-radius:99px;overflow:hidden}
+  .bar > i{display:block;height:100%;width:0;background:var(--blue);border-radius:99px;transition:width .18s}
+
+  #list{margin-top:18px}
+  .file{
+    border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:10px;background:#fff;
+    display:grid;grid-template-columns:1fr auto;gap:6px 16px;align-items:center;
+  }
+  .file .name{font-size:14px;font-weight:600;word-break:break-all}
+  .file .meta{font-size:12.5px;color:var(--ink-3);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .file .meta .ok{color:var(--ok);font-weight:600}
+  .file .meta .warn{color:var(--warn)}
+  .file .meta .err{color:var(--err);font-weight:600}
+  .file .right{display:flex;gap:8px;align-items:center}
+  .file .pbar{grid-column:1/-1;margin-top:4px}
+  .file .pbar .bar{height:5px}
+  .file .pbar.hide{display:none}
+  .file.done{border-color:#d5ead9;background:#fbfefc}
+  .file.fail{border-color:#f6d5d2;background:#fffbfa}
+  .file .rm{background:none;border:none;color:var(--ink-3);cursor:pointer;font-size:18px;line-height:1;padding:2px 4px;border-radius:6px}
+  .file .rm:hover{color:var(--err);background:#fdf3f2}
+
+  .totals{margin-top:14px;font-size:13px;color:var(--ink-2);display:none}
+  .totals.show{display:block}
+  .totals b{color:var(--blue);font-size:15px}
+
+  details.adv{margin-top:14px}
+  details.adv summary{cursor:pointer;font-size:13px;color:var(--ink-2);user-select:none}
+  details.adv[open] summary{margin-bottom:12px}
+
+  footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3);line-height:1.8}
+  footer b{color:var(--ink-2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>FLAC / MP3 / M4A → <span class="accent">Opus</span> 最高压缩</h1>
+  <p class="sub">
+    纯浏览器本地转换，文件不上传。输出 <code>.opus</code>（Ogg Opus）：
+    libopus <code>complexity 10</code> + VBR + 60ms 帧 —— 同等体积音质最好，同等音质体积最小。
+  </p>
+
+  <div id="drop" tabindex="0" role="button" aria-label="选择或拖入音频文件">
+    <div class="icon">♪</div>
+    <div class="big">拖入文件，或 <em>点击选择</em></div>
+    <div class="small">支持 .flac .mp3 .m4a（也兼容 .wav .aac .ogg .opus .wma .aiff），可批量</div>
+  </div>
+  <input type="file" id="picker" multiple accept=".flac,.mp3,.m4a,.wav,.aac,.ogg,.oga,.opus,.wma,.aiff,.aif,audio/*" hidden>
+
+  <div class="panel">
+    <h2>压缩设置</h2>
+
+    <div class="row">
+      <span class="label">压缩档位</span>
+      <div class="seg" id="presets">
+        <button data-br="16" data-name="极限压缩"><span>极限压缩</span><b>16 kbps · 语音/有声书</b></button>
+        <button data-br="24" data-name="高压缩"><span>高压缩</span><b>24 kbps · 小体积优先</b></button>
+        <button data-br="32" data-name="最高压缩" class="on"><span>最高压缩</span><b>32 kbps · 推荐默认</b></button>
+        <button data-br="48" data-name="均衡"><span>均衡</span><b>48 kbps · 日常听歌</b></button>
+        <button data-br="64" data-name="高音质"><span>高音质</span><b>64 kbps · 接近透明</b></button>
+        <button data-br="96" data-name="极高音质"><span>极高音质</span><b>96 kbps · 保真优先</b></button>
+        <button data-br="0" data-name="自定义"><span>自定义</span><b>自己填码率</b></button>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="label">目标码率</span>
+      <input type="number" id="bitrate" min="6" max="510" step="1" value="32"> <span class="hint">kbps，VBR（实际围绕该值浮动）</span>
+    </div>
+
+    <div class="row">
+      <span class="label">声道</span>
+      <select id="channels">
+        <option value="keep">保留原声道</option>
+        <option value="1">强制单声道（体积更小，适合人声）</option>
+      </select>
+      <label class="chk"><input type="checkbox" id="meta" checked> 保留标签</label>
+      <label class="chk"><input type="checkbox" id="voip"> 语音模式（voip 优化，低码率下更清楚）</label>
+    </div>
+
+    <details class="adv">
+      <summary>高级选项</summary>
+      <div class="row">
+        <span class="label">帧长</span>
+        <select id="frameMs">
+          <option value="60">60 ms（帧头开销最小）</option>
+          <option value="40">40 ms</option>
+          <option value="20">20 ms（seek 定位更细）</option>
+        </select>
+        <span class="hint">复杂度固定 10（最费 CPU、同码率音质最高）</span>
+      </div>
+    </details>
+  </div>
+
+  <div id="engine">
+    <div class="etop"><span id="engineText">正在加载转换引擎…</span><span id="enginePct">0%</span></div>
+    <div class="bar"><i id="engineBar"></i></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" id="start" disabled>开始转换</button>
+    <button class="btn btn-primary" id="downloadAll" disabled>全部下载（.zip）</button>
+    <button class="btn btn-ghost" id="clear" disabled>清空列表</button>
+    <span class="hint" id="tip">先添加文件</span>
+  </div>
+
+  <div id="list"></div>
+  <div class="totals" id="totals"></div>
+
+  <footer>
+    <b>原理：</b>ffmpeg.wasm 把任何输入解码成 48kHz PCM（FLAC/MP3/AAC/M4A/WMA 等都能解），
+    再用独立的 libopus（WebAssembly）以 complexity 10 + VBR 编码，最后按 Opus 规范封装成 Ogg Opus。<br>
+    <b>为什么最小：</b>Opus 低码率效率远高于 MP3/AAC，32 kbps 立体声大致相当于 MP3 96–128 kbps 的听感；
+    60ms 长帧还能省下帧头开销。<br>
+    <b>限制：</b>Opus 输出固定 48kHz；全部在内存中处理，单文件建议 ≤ 300MB（约 17 分钟立体声 FLAC）；
+    封面图不保留（省体积），常见文字标签（标题/歌手/专辑等）会保留。<br>
+    <b>文件说明：</b>引擎二进制在 <code>engine/</code> 文件夹（ffmpeg 内核 + libopus 封装器），
+    请与 HTML 一起存放，缺失时无法转换；其余代码都在本页面内。
+  </footer>
+</div>
+
+<!-- 引擎二进制（构建时生成到 engine/，请与页面一起分发） -->
+<script src="engine/ffmpeg-core.wasm.gz.b64.js"></script>
+<script src="engine/ogg-opus-encoder.wasm.b64.js"></script>
+<script src="opus-transcoder.js"></script>
+<script src="audio-to-opus.app.js"></script>
+
+<!-- 启动自检：组件缺失时给出明确提示（否则 UI 事件不会绑定，表现为“点了没反应”） -->
+<script>
+(function () {
+  'use strict';
+  function fail(html) {
+    var b = document.createElement('div');
+    b.style.cssText = 'margin:18px 0;padding:14px 18px;border:1px solid #f3c8c4;background:#fffbfa;' +
+      'color:#c5221f;border-radius:12px;font-size:14px;line-height:1.8';
+    b.innerHTML = '<b>⚠ 组件缺失，页面无法工作：</b><br>' + html;
+    var wrap = document.querySelector('.wrap') || document.body;
+    wrap.insertBefore(b, wrap.firstChild);
+  }
+  // <script src> 加载失败（404 / 找不到文件）
+  window.addEventListener('error', function (e) {
+    var t = e.target;
+    if (t && t.tagName === 'SCRIPT' && t.src) {
+      fail('脚本加载失败：<code>' + decodeURIComponent(t.src.split('/').pop()) + '</code>。<br>' +
+        '请确认 <b>audio-to-opus.html、opus-transcoder.js、audio-to-opus.app.js 和 engine/ 文件夹</b>在同一个目录里' +
+        '（整个文件夹一起复制/移动，只拷 HTML 一个文件是不够的）。');
+    } else if (e.message && String(e.filename || '').indexOf('audio-to-opus.app.js') >= 0) {
+      fail('页面脚本运行出错：' + e.message + '（audio-to-opus.app.js 第 ' + e.lineno + ' 行）');
+    }
+  }, true);
+  document.addEventListener('DOMContentLoaded', function () {
+    var miss = [];
+    if (typeof window.OpusTranscoder !== 'function') miss.push('<code>opus-transcoder.js</code>');
+    if (!window.FFmpegCoreAsset) miss.push('<code>engine/ffmpeg-core.wasm.gz.b64.js</code>');
+    if (!window.OggOpusEncoderAsset) miss.push('<code>engine/ogg-opus-encoder.wasm.b64.js</code>');
+    if (miss.length) {
+      fail('以下文件没有找到：<br>' + miss.join('<br>') + '<br>' +
+        '请把 <b>整个 audio-to-opus 文件夹</b>完整复制后再打开页面（保持 engine/ 子文件夹与两个 .js 文件跟 HTML 在一起）。');
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
