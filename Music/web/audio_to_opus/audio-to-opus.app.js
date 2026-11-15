@@ -345,6 +345,7 @@
     loadEngine: function () { return transcoder.load(function (p) { showEngine(p.text, p.pct); }); },
     startAll: startAll,
     isReady: function () { return transcoder.isReady(); },
+    debugLog: function () { return transcoder.debugLog(); },
     options: readOptions
   };
 })();

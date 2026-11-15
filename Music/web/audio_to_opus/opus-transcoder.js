@@ -187,11 +187,20 @@
     "",
     "async function runJob(msg) {",
     "  try {",
+    "    function fsFail(step, e) {",
+    "      var errno = (e && e.errno != null) ? (' errno=' + e.errno) : '';",
+    "      var err = new Error(step + '失败（FS' + errno + '）。常见原因：文件过大导致浏览器内存不足、文件被其他程序占用、文件已被移动或删除、云同步文件（OneDrive 等）尚未下载到本地。');",
+    "      throw err;",
+    "    }",
+    "    function guarded(step, fn) {",
+    "      try { return fn(); } catch (e) { fsFail(step, e); }",
+    "    }",
+    "    function unlinkQuiet(path) { try { ff.FS.unlink(path); } catch (_) {} }",
     "    var inPath = '/in_' + msg.id + msg.inExt;",
     "    var pcmPath = '/pcm_' + msg.id + '.raw';",
     "    var metaPath = '/meta_' + msg.id + '.txt';",
     "",
-    "    ff.FS.writeFile(inPath, msg.data);",
+    "    guarded('写入输入文件', function(){ ff.FS.writeFile(inPath, msg.data); });",
     "    post({ type: 'phase', id: msg.id, phase: 'decode' });",
     "",
     "    LOG.length = 0;",
@@ -206,8 +215,10 @@
     "        LOG.length = 0;",
     "        ff.exec('-hide_banner','-nostdin','-i',inPath,'-map_metadata','0','-f','ffmetadata',metaPath);",
     "        var mret = ff.ret; ff.reset();",
+    "        post({ type: 'debug', where: 'meta-exec', ret: mret, logTail: tail(LOG, 3), exists: (function(){ try { return ff.FS.stat(metaPath).size; } catch (_) { return -1; } })() });",
     "        if (mret === 0) {",
     "          var metaTxt = new TextDecoder().decode(ff.FS.readFile(metaPath));",
+    "          post({ type: 'debug', where: 'meta-read', len: metaTxt.length });",
     "          var inChapter = false;",
     "          metaTxt.split('\\n').forEach(function(line){",
     "            line = line.replace(/\\r$/,'');",
@@ -218,18 +229,19 @@
     "            var eq = line.indexOf('=');",
     "            if (eq > 0) {",
     "              var k = line.slice(0, eq), v = line.slice(eq+1);",
-    "              if (k && v && v.length < 800 && /^(title|artist|album|album_artist|artist_sort|album_sort|composer|performer|date|year|genre|track|disc|label|copyright|description|comment|lyrics.*)$/i.test(k)) {",
-    "                comments.push(k + '=' + v);",
+    "            if (k && v && v.length < 800 && /^(title|artist|album|album_artist|artist_sort|album_sort|composer|performer|date|year|genre|track|disc|label|copyright|description|comment|lyrics.*)$/i.test(k)) {",
+    "              comments.push(k + '=' + v);",
     "              }",
     "            }",
     "          });",
+    "          post({ type: 'debug', where: 'meta-parse', comments: comments.length });",
     "        }",
     "      } catch (ignoreMeta) {}",
     "    }",
-    "    ff.FS.unlink(metaPath);",
+    "    unlinkQuiet(metaPath);",
     "",
-    "    var pcmSize = ff.FS.stat(pcmPath).size;",
-    "    var stream = ff.FS.open(pcmPath, 'r');",
+    "    var pcmSize = guarded('读取解码结果', function(){ return ff.FS.stat(pcmPath).size; });",
+    "    var stream = guarded('读取解码结果', function(){ return ff.FS.open(pcmPath, 'r'); });",
     "    var totalSamples = Math.floor(pcmSize / (2 * msg.channels));",
     "    post({ type: 'phase', id: msg.id, phase: 'encode', totalSamples: totalSamples });",
     "",
@@ -261,7 +273,8 @@
     "    while (samplesRead < totalSamples) {",
     "      if (jobCancelled) { break; }",
     "      var want = Math.min(readBuf.length, (totalSamples - samplesRead) * 2 * msg.channels);",
-    "      var got = ff.FS.read(stream, readBuf, 0, want, pos);",
+    "      var got = 0;",
+    "      try { got = ff.FS.read(stream, readBuf, 0, want, pos); } catch (e) { fsFail('读取解码结果', e); }",
     "      if (got <= 0) break;",
     "      pos += got;",
     "      var framesAvail = Math.floor((got/2) / msg.channels);",
@@ -285,9 +298,9 @@
     "      post({ type: 'progress', id: msg.id, ratio: Math.min(0.99, samplesRead / totalSamples) });",
     "      await sleep(0);",
     "    }",
-    "    ff.FS.close(stream);",
-    "    ff.FS.unlink(pcmPath);",
-    "    ff.FS.unlink(inPath);",
+    "    guarded('收尾清理', function(){ ff.FS.close(stream); });",
+    "    unlinkQuiet(pcmPath);",
+    "    unlinkQuiet(inPath);",
     "    opus._opus_encoder_destroy(enc);",
     "    opus._free(p_pcm);",
     "    opus._free(p_data);",
@@ -325,6 +338,7 @@
   }
 
   OpusTranscoder.prototype.isReady = function () { return this._ready; };
+  OpusTranscoder.prototype.debugLog = function () { return this._debugLog || []; };
 
   OpusTranscoder.prototype._call = function (msg, transfer) {
     var self = this;
@@ -379,6 +393,7 @@
           try { self._currentJob.onProgress({ phase: 'encode', ratio: d.ratio }); } catch (_) {}
           return;
         }
+        if (d.type === 'debug') { (self._debugLog = self._debugLog || []).push(d); return; }
         var p = self._pending[d.id];
         if (!p) return;
         delete self._pending[d.id];
